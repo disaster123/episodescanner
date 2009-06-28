@@ -58,7 +58,7 @@ our $use_fernsehserien;
 our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
 
-do 'config.pl';
+do 'config.txt';
 
 Log::start();
 
