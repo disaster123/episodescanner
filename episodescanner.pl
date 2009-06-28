@@ -38,7 +38,7 @@ my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
 
 
-our $DEBUG = ($ARGV[0] eq "-debug") ? 1 : 0;
+our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
 our $tvdb_apikey;
 our $cleanup_recordingdir;
 our $dbuser;
@@ -61,6 +61,10 @@ our $cleanup_recordingfiles;
 do 'config.pl';
 
 Log::start();
+
+if ($use_tv_tb && $tvdb_apikey eq "") {
+  die "No tvdb API key provided\n";
+}
 
 my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=$dbname";
 my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
