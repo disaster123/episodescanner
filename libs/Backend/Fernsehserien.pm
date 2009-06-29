@@ -3,10 +3,17 @@ package Backend::Fernsehserien;
 use warnings;
 use strict;
 use LWP::Simple;
+use LWP::UserAgent;
+use URI;
 use URI::Escape;
 use Data::Dumper;
 use Win32::Codepage;
 use Encode qw(encode decode);
+use Encode::Alias;
+use Encode::Encoding;
+use Encode::Encoder;
+use Encode::Symbol;
+use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 
@@ -20,7 +27,7 @@ sub new {
   return $self;
 }
 
-sub search($$) {
+sub search {
   my $self = shift;
   my $seriesname = shift;
   my $episodename = shift;
@@ -31,8 +38,12 @@ sub search($$) {
 
   my $page = get("http://www.fernsehserien.de/index.php?suche=".uri_escape($seriesname));
 
+print "-$page-\n";
+
+exit;
+
   # test if it is directly a result page
-  if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenführer/i) {
+  if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenf[.]hrer/i) {
   } else {
         # Try to get all Series
         #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>

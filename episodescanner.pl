@@ -27,19 +27,28 @@ use Backend::Fernsehserien;
 use Backend::TVDB;
 use Data::Dumper;
 use Win32::Codepage;
-use Encode qw(encode decode);
-use utf8;
+use Win32::TieRegistry;
+use Encode qw(encode decode resolve_alias);
+use Encode::Alias;
+use Encode::Encoding;
+use Encode::Encoder;
+use Encode::Symbol;
+use Encode::Byte;
 use DBI;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);
 use Time::localtime;
 use URI::Escape;
 use LWP::Simple;
+use LWP::UserAgent;
+use URI;
+use DBM::Deep;
 
+# cp1252
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
-my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
+my $encoding = $w32encoding ? resolve_alias($w32encoding) : '';
 
-
+our $progbasename = &basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
 our $tvdb_apikey;
 our $cleanup_recordingdir;
@@ -62,6 +71,7 @@ our $cleanup_recordingfiles;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval("do 'config.txt';");
+die $@."\n\n" if ($@);
 
 Log::start();
 
@@ -83,7 +93,7 @@ Log::log("Recordingdir: $cleanup_recordingdir");
 
 # Build search objects
 $b_fs = new Backend::Fernsehserien;
-$b_tvdb = new Backend::TVDB($tvdb_apikey);
+$b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey);
 
 # get all recordings
 %tvserien = &get_recordings();
@@ -139,13 +149,13 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	      my ($episodenumber, $seasonnumber) = ("", "");
 	      
 	      if ($use_fernsehserien) {
-	         ($episodenumber, $seasonnumber) = $b_fs->search($seriesname, $episodename);
+	         ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
               }
 	      if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-		 ($episodenumber, $seasonnumber) = $b_tvdb->search($seriesname, $episodename);
+		 ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
 	      }
 	      
-	      Log::log("$episodename S${episodenumber}E${seasonnumber}");
+	      Log::log("$episodename S${seasonnumber}E${episodenumber}");
 
 	      if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = $seasonnumber;
@@ -167,7 +177,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
 } # end series
 
-nstore(\%seriescache, 'tmp/'.$0.".seriescache"); 
+nstore(\%seriescache, 'tmp/'.$progbasename.".seriescache"); 
 
 Log::log("END seriessearch\n");
 
@@ -286,7 +296,7 @@ sub checkdir($$) {
 }
 
 sub load_and_clean_cache {
-	%seriescache = %{retrieve('tmp/'.$0.".seriescache")} if (-e 'tmp/'.$0.".seriescache");
+	%seriescache = %{retrieve('tmp/'.$progbasename.".seriescache")} if (-e 'tmp/'.$progbasename.".seriescache");
 	
 	### CLEAN Cache
 	foreach my $serie (keys %seriescache) {
@@ -314,4 +324,16 @@ sub get_recordings() {
 	$abf->finish();
 
 return %recs;
+}
+
+
+sub basename {
+   my $dir = shift;
+   my $type = shift || "";
+
+   $type = quotemeta($type);
+   $dir =~ s#^.*\\##;
+   $dir =~ s#$type$##i if ($type ne "");
+
+return $dir;
 }

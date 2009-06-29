@@ -2,21 +2,29 @@ package Backend::TVDB;
 
 use warnings;
 use strict;
+use DBM::Deep;
 use TVDB::API;
 use LWP::Simple;
 use URI::Escape;
 use Data::Dumper;
 use Win32::Codepage;
 use Encode qw(encode decode);
+use Encode::Alias;
+use Encode::Encoding;
+use Encode::Encoder;
+use Encode::Symbol;
+use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
 my $ss = chr(223);
+my $progbasename = "";
 
 sub new {
     my $type = shift;
+    $progbasename = shift;
     my $apikey = shift;
     my $self = {};
 
@@ -25,18 +33,18 @@ sub new {
     $self->{tvdb}->setLang('de');
     $self->{tvdb}->setUserAgent("TVDB::API/$TVDB::API::VERSION");
     $self->{tvdb}->setBannerPath("tmp");
-    $self->{tvdb}->setCacheDB('tmp/'.$0.'_tvdb.cache');
+    $self->{tvdb}->setCacheDB('tmp/'.$progbasename.'_tvdb.cache');
     
     $self->{cache} = ();
 
     # delete Cache if it is older than 2 days
-    if (-e 'tmp/'.$0.'.cache') {
+    if (-e 'tmp/'.$progbasename.'.cache') {
 	# in Tagen
-	my $creation = int((time() - (stat('tmp/'.$0.'.cache'))[10])/60/60/24);
+	my $creation = int((time() - (stat('tmp/'.$progbasename.'.cache'))[10])/60/60/24);
 	if ($creation > 2) {   # 2 Tage
                 Log::log("deleted TVDB Cache - was $creation days old");
 		# delete TVDB Cache every 2 days
-		unlink('tmp/'.$0.'.cache');
+		unlink('tmp/'.$progbasename.'.cache');
 	}
     }
 
@@ -128,6 +136,7 @@ sub search($$) {
     		             $episodedata = $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]};
 	             }
 	             %episodedata = %{$episodedata};
+	             next if (!defined $episodedata{'EpisodeName'});
      		     $episodedata{'EpisodeName'} =~ s#\s+$##;
      		     $episodedata{'EpisodeName'} =~ s#^\s+##;
 
