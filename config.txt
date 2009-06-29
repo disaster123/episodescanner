@@ -1,18 +1,27 @@
 
-$tvdb_apikey = '24D235D27EFD8883';
+# TVDB (www.thetvdb.com) API Key - NOT Account Identifier
+# you can create your own API key in your account on www.thetvdb.com
+$tvdb_apikey = '';
 
-$use_fernsehserien = 1;
+# activate search on thetvdb.com
 $use_tv_tb = 1;
+# activate search on fernsehserien
+$use_fernsehserien = 1;
 
+# delete recordings from the DB when the file does not exist
 $cleanup_recordingdb = 1;
+# delete empty folders, delet .xml, .txt, .logo, .jpg files (if the .ts file is removed) in recordingdir
 $cleanup_recordingfiles = 1;
-$cleanup_recordingdir = q|O:\VID|;
+# folder where the recordings are stored
+$cleanup_recordingdir = 'O:\VID';
 
-$dbhost = "HOMESERVER-PC\\SQLEXPRESS";
-$dbname = "MpTvDb";
-$dbuser = "sa";
-$dbpw = "MediaPortal";
+# DB Settings
+$dbhost = 'HOMESERVER-PC\SQLEXPRESS';
+$dbname = 'MpTvDb';
+$dbuser = 'sa';
+$dbpw = 'MediaPortal';
 
+# after each run sleep for x seconds
 $sleep = 60;
 
 1;

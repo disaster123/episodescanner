@@ -64,7 +64,8 @@ do "config.txt";
 Log::start();
 
 if ($use_tv_tb && $tvdb_apikey eq "") {
-  die "No tvdb API key provided\n";
+  $tvdb_apikey = "24D235D27EFD8883";
+  Log::log("use global TVDB API Key");
 }
 
 my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=$dbname";
@@ -73,7 +74,7 @@ our $dbh = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect
 our $dbh2 = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect: $DBI::errstr\n\n";
 $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;$dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
 
-Log::log("API Key is: $tvdb_apikey | Dir is: $cleanup_recordingdir");
+Log::log("Recordingdir: $cleanup_recordingdir");
 
 # load series cache
 &load_and_clean_cache();

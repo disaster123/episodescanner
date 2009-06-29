@@ -1,0 +1,19 @@
+@echo off
+
+rmdir /S /Q build
+mkdir build
+
+"%PROGRAMFILES%\Cava Packager 1.3\bin\cavapack.exe" project.cavapack
+
+rmdir /S /Q build\bin
+
+xcopy ..\run.bat build
+xcopy ..\config.txt build
+xcopy /kreisch ..\tmp build\tmp
+
+rmdir /S /Q build\tmp\.svn
+
+pause
+
+
+
