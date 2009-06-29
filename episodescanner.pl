@@ -9,6 +9,8 @@ BEGIN {
   $program_dir ||= ".";
   chdir($program_dir);
 
+  # push . to add
+  push(@INC, '.');
   push(@INC, 'libs');
   @INC = reverse @INC;
 }
@@ -59,7 +61,7 @@ our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
-do "config.txt";
+eval("do 'config.txt';");
 
 Log::start();
 
