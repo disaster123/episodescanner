@@ -2,6 +2,6 @@
 
 :loop
 
-perl episodescanner.pl
+episodescanner.exe
 
 goto loop

@@ -58,7 +58,8 @@ our $use_fernsehserien;
 our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
 
-do 'config.txt';
+die "cannot find config.txt\n\n" if (!-e "config.txt"):
+do "config.txt";
 
 Log::start();
 
