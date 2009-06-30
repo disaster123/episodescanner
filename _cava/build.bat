@@ -13,6 +13,7 @@ xcopy ..\config.txt build
 xcopy /kreisch ..\tmp build\tmp
 
 rmdir /S /Q build\tmp\.svn
+del /S /Q build\tmp\*
 
 move build episodescanner
 

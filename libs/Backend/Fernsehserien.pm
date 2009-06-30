@@ -2,9 +2,9 @@ package Backend::Fernsehserien;
 
 use warnings;
 use strict;
-use LWP::Simple;
 use LWP::UserAgent;
 use URI;
+use URI::URL;
 use URI::Escape;
 use Data::Dumper;
 use Win32::Codepage;
@@ -34,25 +34,39 @@ sub search {
   my $episodenumber = "";
   my $seasonnumber = "";
 
-  Log::log("Search for \"".$seriesname."\" \"".$episodename."\" on http://www.fernsehserien.de/...");
+  Log::log("\tsearch on http://www.fernsehserien.de/...");
 
-  my $page = get("http://www.fernsehserien.de/index.php?suche=".uri_escape($seriesname));
-
-print "-$page-\n";
-
-exit;
+  my $page = _myget("http://www.fernsehserien.de/index.php", ( suche => $seriesname ));
 
   # test if it is directly a result page
-  if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenf[.]hrer/i) {
+  if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenführer/i) {
   } else {
         # Try to get all Series
         #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>
         my $t = $seriesname;
         if ($page =~ m#<a href="([^"]+)">(<b>)*$t(</b>)*#i) {
-	   Log::log("Found page $1");
-	   $page = get("http://www.fernsehserien.de/".$1);
+           my $uri = $1;
+	   Log::log("Found page $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	   my %par = ();
+           if ($uri =~ m#\?(.*)$#i) {
+	       foreach my $l (split(/&/, $1)) {
+	          my ($name, $value) = split(/=/, $l, 2);
+	          $par{$name} = $value;
+	       }
+	       $uri =~ s#\?.*$##;
+	   }
+	   $page = _myget("http://www.fernsehserien.de/".$uri, %par);
 	} else {
-	   Log::log("No Seriesindexpage found for $t");
+	   Log::log("\tNo Seriesindexpage found for $t");
+	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
+		   my $FH;
+		   open($FH, ">page.htm");
+		   print $FH $page;
+		   close($FH);
+		   print "Press enter to continue\n";
+		   <STDIN>;
+	   }
+	   
 	   return (0, 0);
 	}
   }
@@ -72,11 +86,12 @@ exit;
   $fuzzy{distance} = 99;
   $fuzzy{maxdistance} = 2;
   my $episodename_search = $self->staffeltitle_to_regtest($episodename);
-  foreach my $fs_title (keys %staffeln) {
+  foreach my $fs_title (sort keys %staffeln) {
         my $regtest = $self->staffeltitle_to_regtest($fs_title);
 
         $regtest = encode($encoding, $regtest);		     		     
         if (lc($episodename_search) eq lc($regtest)) {
+	     Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	     # found number so return
              return ($staffeln{$fs_title}{S}, $staffeln{$fs_title}{E});
 	} else {
@@ -101,6 +116,17 @@ exit;
    } else {
        Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 0);
    }
+   
+   if ($seasonnumber eq "0" || $seasonnumber eq "") {
+	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
+		   my $FH;
+		   open($FH, ">page.htm");
+		   print $FH $page;
+		   close($FH);
+		   print "Press enter to continue\n";
+		   <STDIN>;
+	   }
+    }
 	
  return ($seasonnumber, $episodenumber);
 }
@@ -110,7 +136,7 @@ sub get_staffel_hash {
    my $self = shift;
    my $p = shift;
    my %r;
-
+	   
    my $aktstaffel = 0;
    my $start = 0;
    my $aktseries_in_staffel = 0;
@@ -136,6 +162,7 @@ sub get_staffel_hash {
    	}
    	next if (!defined $aktstaffel);
    	if ($line =~ /(\d+)\. (.*)$/i) {
+   	        $aktstaffel = 1 if ($aktstaffel == 0);
    		$r{$2}{E} = ++$aktseries_in_staffel;
    		$r{$2}{S} = $aktstaffel;
    		next;
@@ -164,6 +191,19 @@ sub staffeltitle_to_regtest {
         $regtest =~ s#\s+##g;
 
 return $regtest;
+}
+
+sub _myget {
+	my $url = shift;
+	my %par = @_;
+
+	my $ua = LWP::UserAgent->new();
+	my $uri = URI::URL->new($url);
+	$uri->query_form(%par);
+	
+	my $resp = $ua->get($uri);
+
+return $resp->content();
 }
 
 1;

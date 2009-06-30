@@ -16,6 +16,9 @@ use Encode::Symbol;
 use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
+use DBM::Deep;
+use DBM::Deep::Hash;
+use DBM::Deep::Array;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
@@ -52,7 +55,7 @@ sub new {
 }
 
 
-sub search($$) {
+sub search() {
   my $self = shift;
   my $seriesname = shift;
   my $episodename = shift;
@@ -61,7 +64,7 @@ sub search($$) {
   my $hr;
   my $seriesid = 0;
 
-  Log::log("Search for \"".$seriesname."\" \"".$episodename."\" on http://www.thetvdb.com/...");
+  Log::log("\tsearch on http://www.thetvdb.com/...");
 
   utf8::encode($seriesname);
   eval {
@@ -89,7 +92,7 @@ sub search($$) {
   }
 	
   if ($seriesid == 0) {
-      Log::log("Cannot find $seriesname at TheTVDB");
+      Log::log("\tCannot find $seriesname at TheTVDB");
       return (0, 0);
   }
 

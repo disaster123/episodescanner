@@ -41,6 +41,7 @@ my $encoding = $w32encoding ? resolve_alias($w32encoding) : '';
 
 our $progbasename = &basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
+$ENV{DEBUG} = $DEBUG;
 our $tvdb_apikey;
 our $cleanup_recordingdir;
 our $dbuser;
@@ -100,20 +101,28 @@ foreach my $tv_serie (sort keys %tvserien)  {
         # GO through show in EPG DB for tv_serie
         $tv_serie = encode($encoding, $tv_serie);
         my $abf_g;
-        if (!$DEBUG) {
+#        if (!$DEBUG) {
           $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND seriesNum='' AND title LIKE ?;");
-        } else {
-          $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND title LIKE ?;");
-        }
+#        } else {
+#          $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND title LIKE ?;");
+#        }
         $abf_g->execute($tv_serie);
         while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
     	     # print Dumper($akt_tv_serie_h)."\n\n";
     	     
+              my $seriesname = $tv_serie;
+              $seriesname =~ s#\s+$##;
+              $seriesname =~ s#^\s+##;
+              my $episodename = $akt_tv_serie_h->{'episodeName'};
+              $episodename =~ s#\s+$##;
+              $episodename =~ s#^\s+##;
+	      Log::log("\n\tEpisode: $episodename");
+
 	     # check Cache
 	     # defined and not UNKNOWN
 	     if (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
 	     					$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} ne "UNKNOWN") {
-		Log::log("Series in Cache ".$akt_tv_serie_h->{'episodeName'}." S".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}."E".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum});
+		Log::log("\tSeries in Cache ".$akt_tv_serie_h->{'episodeName'}." S".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}."E".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum});
 
 		my $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
 		my $a = $abf->execute($seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}, 
@@ -124,18 +133,10 @@ foreach my $tv_serie (sort keys %tvserien)  {
               # defined and UNKNOWN
       	      } elsif (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
 				$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} eq "UNKNOWN") {
-		Log::log("Series in Cache as unknown ".$akt_tv_serie_h->{'episodeName'});
+		Log::log("\tSeries in Cache as unknown ".$akt_tv_serie_h->{'episodeName'});
 		next;		
 	      }
-	
-              my $seriesname = $tv_serie;
-              $seriesname =~ s#\s+$##;
-              $seriesname =~ s#^\s+##;
-              my $episodename = $akt_tv_serie_h->{'episodeName'};
-              $episodename =~ s#\s+$##;
-              $episodename =~ s#^\s+##;
-	      Log::log("Episode: $episodename");
-	
+
 	      # start a new search on fernsehserien.de
 	      my ($episodenumber, $seasonnumber) = ("", "");
 	      
@@ -146,8 +147,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
 		 ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
 	      }
 	      
-	      Log::log("$episodename S${seasonnumber}E${episodenumber}");
-
 	      if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = $seasonnumber;
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum} = $episodenumber;
@@ -156,11 +155,15 @@ foreach my $tv_serie (sort keys %tvserien)  {
 		my $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
 		my $a = $abf->execute($seasonnumber, $episodenumber, $akt_tv_serie_h->{'idProgram'});
 		$abf->finish();
+
+  	        Log::log("\tS${seasonnumber}E${episodenumber} => $episodename");
 						
 	      } else {
 		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = 'UNKNOWN';
 		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum} = 'UNKNOWN';
 		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{time} = time();
+
+  	        Log::log("\tNOTHING FOUND => $seriesname $episodename");
 	      }
 
   } # end episode of a series
