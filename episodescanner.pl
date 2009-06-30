@@ -3,16 +3,11 @@
 
 BEGIN {
   $| = 1;
-
+  
   $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
   my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
   $program_dir ||= ".";
   chdir($program_dir);
-
-  # push . to add
-  push(@INC, '.');
-  push(@INC, 'libs');
-  @INC = reverse @INC;
 }
 
 END {
@@ -20,6 +15,8 @@ END {
   $dbh2->disconnect() if ($dbh2);
 }
 
+use lib 'libs';
+use lib '.';
 use warnings;
 use strict;
 use Log;
@@ -27,12 +24,7 @@ use Backend::Fernsehserien;
 use Backend::TVDB;
 use Data::Dumper;
 use Win32::Codepage;
-use Win32::TieRegistry;
 use Encode qw(encode decode resolve_alias);
-use Encode::Alias;
-use Encode::Encoding;
-use Encode::Encoder;
-use Encode::Symbol;
 use Encode::Byte;
 use DBI;
 use Storable qw(nstore retrieve);
@@ -42,7 +34,6 @@ use URI::Escape;
 use LWP::Simple;
 use LWP::UserAgent;
 use URI;
-use DBM::Deep;
 
 # cp1252
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
@@ -70,7 +61,7 @@ our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
-eval("do 'config.txt';");
+eval('push(@INC, "."); do "config.txt";');
 die $@."\n\n" if ($@);
 
 Log::start();
