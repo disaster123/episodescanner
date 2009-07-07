@@ -57,7 +57,6 @@ sub search {
 	   }
 	   $page = _myget("http://www.fernsehserien.de/".$uri, %par);
 	} else {
-	   Log::log("\tNo Seriesindexpage found for $t");
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
 		   open($FH, ">page.htm");
@@ -67,6 +66,7 @@ sub search {
 		   <STDIN>;
 	   }
 	   
+           Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Fernsehserien");
 	   return (0, 0);
 	}
   }
@@ -118,6 +118,7 @@ sub search {
    }
    
    if ($seasonnumber eq "0" || $seasonnumber eq "") {
+           Log::log("\tfound series but not episode \"$episodename\" at Fernsehserien");
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
 		   open($FH, ">page.htm");

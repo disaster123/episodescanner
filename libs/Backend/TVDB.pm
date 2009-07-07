@@ -76,7 +76,7 @@ sub search() {
   my @possseries = sort {$b cmp $a} keys %{$hr};
 
   if (scalar(@possseries) == 0) {
-      Log::log("Cannot find $seriesname at TheTVDB");
+      Log::log("\tWas not able to find series \"$seriesname\" at TheTVDB");
       return (0, 0);
   }
 
