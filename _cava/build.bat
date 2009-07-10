@@ -8,6 +8,7 @@ mkdir build
 
 rmdir /S /Q build\bin
 
+xcopy ..\*.dll build
 xcopy ..\run.bat build
 xcopy ..\config.txt build
 xcopy /kreisch ..\tmp build\tmp

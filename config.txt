@@ -22,6 +22,7 @@ $usemysql = 0;
 # for MySQL simply insert the hostname / IP
 $dbhost = 'HOMESERVER-PC\SQLEXPRESS';
 $dbname = 'MpTvDb';
+# for mysql mostly root | for mssql sa
 $dbuser = 'sa';
 $dbpw = 'MediaPortal';
 
