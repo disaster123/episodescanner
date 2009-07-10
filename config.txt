@@ -15,7 +15,11 @@ $cleanup_recordingfiles = 1;
 # folder where the recordings are stored
 $cleanup_recordingdir = 'O:\VID';
 
+# 0 is MSSQL | 1 is mysql
+$usemysql = 0;
+
 # DB Settings
+# for MySQL simply insert the hostname / IP
 $dbhost = 'HOMESERVER-PC\SQLEXPRESS';
 $dbname = 'MpTvDb';
 $dbuser = 'sa';

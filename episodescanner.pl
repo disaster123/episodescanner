@@ -65,6 +65,8 @@ die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
 die $@."\n\n" if ($@);
 
+die "sleep value below 30 not allowed - we do not want to stress the websites too much!\n\n" if ($sleep < 30);
+
 Log::start();
 
 if ($use_tv_tb && $tvdb_apikey eq "") {
