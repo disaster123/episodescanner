@@ -27,6 +27,8 @@ use Win32::Codepage;
 use Encode qw(encode decode resolve_alias);
 use Encode::Byte;
 use DBI;
+use DBD::ODBC;
+use DBD::mysql;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);
 use Time::localtime;
@@ -60,6 +62,9 @@ our $use_tv_tb;
 our $use_fernsehserien;
 our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
+our $usemysql;
+our $dbh;
+our $dbh2;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
@@ -74,11 +79,21 @@ if ($use_tv_tb && $tvdb_apikey eq "") {
   Log::log("use global TVDB API Key");
 }
 
-my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=$dbname";
-my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
-our $dbh = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect: $DBI::errstr\n\n";
-our $dbh2 = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect: $DBI::errstr\n\n";
-$dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;$dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
+
+if ($usemysql) {
+  $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
+                                                   $dbuser, $dbpw) or die "Can't connect MYSQL: $DBI::errstr\n\n";
+  $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
+                                                   $dbuser, $dbpw) or die "Can't connect MYSQL: $DBI::errstr\n\n";
+  $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
+  $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
+} else {
+  my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=$dbname";
+  my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
+  $dbh = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect MSSQL: $DBI::errstr\n\n";
+  $dbh2 = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect MSSQL: $DBI::errstr\n\n";
+  $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;$dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
+}
 
 Log::log("Recordingdir: $cleanup_recordingdir");
 
