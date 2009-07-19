@@ -13,11 +13,16 @@ sub start {
 sub log {
     my $l = shift;
     my $noprint = shift;
-    $noprint = 0 if (!defined $noprint);
+    my $pre = "";
     
-    print "$l\n" if ($noprint == 0);
+    print "$l\n" if (!defined $noprint);
+
+    if ($l =~ m#^((\n|\r)*)#) {
+      $pre = $1;
+      $l =~ s#^$pre##;
+    }
     open($LOGFH, ">>log.txt");
-    print $LOGFH "[".scalar(localtime(time()))."] $l\n";
+    print $LOGFH "$pre[".scalar(localtime(time()))."] $l\n";
     close($LOGFH);
 }
 
