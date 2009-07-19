@@ -17,7 +17,7 @@ sub log {
     
     print "$l\n" if (!defined $noprint);
 
-    if ($l =~ m#^((\n|\r)*)(.*)$#) {
+    if ($l =~ m#^((\n|\r)+)(.*)$#) {
       $pre = $1;
       $l = $2;
     }
