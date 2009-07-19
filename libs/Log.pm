@@ -1,6 +1,6 @@
 package Log;
 
-our $VERSION = '0.01';
+our $VERSION = '0.03';
 my $LOGFH;
 
 
@@ -22,7 +22,7 @@ sub log {
       $l = $3;
     }
     open($LOGFH, ">>log.txt");
-    print $LOGFH "$pre[".scalar(localtime(time()))."] $l\n";
+    print $LOGFH $pre."[".scalar(localtime(time()))."] $l\n";
     close($LOGFH);
 }
 

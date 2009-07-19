@@ -113,9 +113,9 @@ $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey);
 foreach my $tv_serie (sort keys %tvserien)  {
  	# sleep so that there are not too much cpu seconds and speed keeps slow
 	sleep(3);
+	Log::log("\nSerie: $tv_serie\n");
 
 	RESCAN:
-	print "\nSerie: $tv_serie\n";
 
         # GO through show in EPG DB for tv_serie
         $tv_serie = encode($encoding, $tv_serie);
@@ -128,7 +128,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
         $abf_g->execute($tv_serie);
         while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
     	     # print Dumper($akt_tv_serie_h)."\n\n";
-	     Log::log("\nSerie: $tv_serie");
     	     
              my $seriesname = $tv_serie;
              $seriesname =~ s#\s+$##;
