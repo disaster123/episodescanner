@@ -128,14 +128,15 @@ foreach my $tv_serie (sort keys %tvserien)  {
         $abf_g->execute($tv_serie);
         while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
     	     # print Dumper($akt_tv_serie_h)."\n\n";
+	     Log::log("\nSerie: $tv_serie");
     	     
-              my $seriesname = $tv_serie;
-              $seriesname =~ s#\s+$##;
-              $seriesname =~ s#^\s+##;
-              my $episodename = $akt_tv_serie_h->{'episodeName'};
-              $episodename =~ s#\s+$##;
-              $episodename =~ s#^\s+##;
-	      Log::log("\n\tEpisode: $episodename");
+             my $seriesname = $tv_serie;
+             $seriesname =~ s#\s+$##;
+             $seriesname =~ s#^\s+##;
+             my $episodename = $akt_tv_serie_h->{'episodeName'};
+             $episodename =~ s#\s+$##;
+             $episodename =~ s#^\s+##;
+	     Log::log("\n\tEpisode: $episodename");
 
 	     # check Cache
 	     # defined and not UNKNOWN

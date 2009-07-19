@@ -19,7 +19,7 @@ sub log {
 
     if ($l =~ m#^((\n|\r)+)(.*)$#) {
       $pre = $1;
-      $l = $2;
+      $l = $3;
     }
     open($LOGFH, ">>log.txt");
     print $LOGFH "$pre[".scalar(localtime(time()))."] $l\n";
