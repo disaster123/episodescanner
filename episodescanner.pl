@@ -81,6 +81,7 @@ if ($use_tv_tb && $tvdb_apikey eq "") {
 
 
 if ($usemysql) {
+  Log::log("using MySQL", 1);
   $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
                                                    $dbuser, $dbpw) or die "Can't connect MYSQL: $DBI::errstr\n\n";
   $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
@@ -88,6 +89,7 @@ if ($usemysql) {
   $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
   $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
 } else {
+  Log::log("using MSSQL", 1);
   my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=$dbname";
   my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
   $dbh = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect MSSQL: $DBI::errstr\n\n";

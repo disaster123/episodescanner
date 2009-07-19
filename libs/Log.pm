@@ -12,10 +12,10 @@ sub start {
 
 sub log {
     my $l = shift;
-    my $print = shift;
-    $print = 1 if (!defined $print);
+    my $noprint = shift;
+    $noprint = 0 if (!defined $noprint);
     
-    print "$l\n" if ($print);
+    print "$l\n" if ($noprint == 0);
     open($LOGFH, ">>log.txt");
     print $LOGFH "[".scalar(localtime(time()))."] $l\n";
     close($LOGFH);
