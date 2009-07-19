@@ -20,6 +20,7 @@ use lib '.';
 use warnings;
 use strict;
 use Log;
+use Backend::Wunschliste;
 use Backend::Fernsehserien;
 use Backend::TVDB;
 use Data::Dumper;
@@ -36,6 +37,7 @@ use URI::Escape;
 use LWP::Simple;
 use LWP::UserAgent;
 use URI;
+use XML::Simple;
 
 # cp1252
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
@@ -56,10 +58,12 @@ our %tvserien;
 our %cache;
 our %seriescache;
 our $FH;
+our $b_wl;
 our $b_fs;
 our $b_tvdb;
 our $use_tv_tb;
 our $use_fernsehserien;
+our $use_wunschliste;
 our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
 our $usemysql;
@@ -103,6 +107,7 @@ Log::log("Recordingdir: $cleanup_recordingdir");
 &load_and_clean_cache();
 
 # Build search objects
+$b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
 $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey);
 
@@ -113,7 +118,7 @@ $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey);
 foreach my $tv_serie (sort keys %tvserien)  {
  	# sleep so that there are not too much cpu seconds and speed keeps slow
 	sleep(3);
-	Log::log("\nSerie: $tv_serie\n");
+	Log::log("\nSerie: $tv_serie");
 
 	RESCAN:
 
@@ -125,7 +130,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 #        } else {
 #          $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND title LIKE ?;");
 #        }
-        $abf_g->execute($tv_serie);
+        $abf_g->execute($tv_serie) or die $DBI::errstr;
         while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
     	     # print Dumper($akt_tv_serie_h)."\n\n";
     	     
@@ -145,7 +150,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
 		my $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
 		my $a = $abf->execute($seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}, 
-					$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum}, $akt_tv_serie_h->{'idProgram'});
+					$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum}, $akt_tv_serie_h->{'idProgram'}) or die $DBI::errstr;
 		$abf->finish();
 
 		next;
@@ -159,7 +164,10 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	      # start a new search on fernsehserien.de
 	      my ($episodenumber, $seasonnumber) = ("", "");
 	      
-	      if ($use_fernsehserien) {
+	      if ($use_wunschliste) {
+	         ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
+              }
+	      if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
 	         ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
               }
 	      if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
@@ -172,7 +180,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{time} = time();
 			
 		my $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
-		my $a = $abf->execute($seasonnumber, $episodenumber, $akt_tv_serie_h->{'idProgram'});
+		my $a = $abf->execute($seasonnumber, $episodenumber, $akt_tv_serie_h->{'idProgram'}) or die $DBI::errstr;
 		$abf->finish();
 
   	        Log::log("\tS${seasonnumber}E${episodenumber} => $episodename");
@@ -201,13 +209,13 @@ Log::log("Cleanup RecordingsDB");
 
 if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
   my $abf_g = $dbh->prepare("SELECT * FROM recording;");
-  $abf_g->execute();
+  $abf_g->execute() or die $DBI::errstr;
   while (my $aktrec = $abf_g->fetchrow_hashref()) {
 	#print Dumper($aktrec)."\n\n";
 	if (!-e $aktrec->{fileName}) {
 		print "$aktrec->{'fileName'} does not exist -> delete DB Entry\n";
 		my $abf = $dbh2->prepare("DELETE FROM recording WHERE idRecording = ?");
-		my $a = $abf->execute($aktrec->{'idRecording'});
+		my $a = $abf->execute($aktrec->{'idRecording'}) or die $DBI::errstr;
 		$abf->finish();
 	}
   }
@@ -330,7 +338,7 @@ sub get_recordings() {
 	my %recs;
 	
 	my $abf = $dbh->prepare("SELECT * FROM schedule;");
-	$abf->execute();
+	$abf->execute() or die $DBI::errstr;
 	while (my $aktrec = $abf->fetchrow_hashref()) {
 	   $recs{$aktrec->{'programName'}} = 1;
 	}

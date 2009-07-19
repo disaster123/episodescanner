@@ -3,10 +3,12 @@
 # you can create your own API key in your account on www.thetvdb.com
 $tvdb_apikey = '';
 
-# activate search on thetvdb.com
-$use_tv_tb = 1;
+# activate search on wunschliste.de
+$use_wunschliste = 1;
 # activate search on fernsehserien
 $use_fernsehserien = 1;
+# activate search on thetvdb.com
+$use_tv_tb = 1;
 
 # delete recordings from the DB when the file does not exist
 $cleanup_recordingdb = 1;
