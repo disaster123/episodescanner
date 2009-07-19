@@ -17,9 +17,9 @@ sub log {
     
     print "$l\n" if (!defined $noprint);
 
-    if ($l =~ m#^((\n|\r)*)#) {
+    if ($l =~ m#^((\n|\r)*)(.*)$#) {
       $pre = $1;
-      $l =~ s#^$pre##;
+      $l = $2;
     }
     open($LOGFH, ">>log.txt");
     print $LOGFH "$pre[".scalar(localtime(time()))."] $l\n";
