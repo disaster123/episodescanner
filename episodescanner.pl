@@ -32,7 +32,6 @@ use DBD::ODBC;
 use DBD::mysql;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);
-#use Time::localtime;
 use URI::Escape;
 use LWP::Simple;
 use LWP::UserAgent;
@@ -252,7 +251,6 @@ if ($db_backup) {
         my $newest = 99999999999999;	
         my @files = glob("$db_backup_sqlite_backuppath\\*");
         foreach my $dir (@files) {
-		$dir = $db_backup_sqlite_backuppath."\\".$dir;
 		next if (!-d $dir || $dir =~ /^\./);
       	        # in Stunden
 	        my $creation = int((time() - (stat($dir))[10])/60/60);
