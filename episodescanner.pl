@@ -32,7 +32,7 @@ use DBD::ODBC;
 use DBD::mysql;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);
-use Time::localtime;
+#use Time::localtime;
 use URI::Escape;
 use LWP::Simple;
 use LWP::UserAgent;
@@ -69,6 +69,11 @@ our $cleanup_recordingfiles;
 our $usemysql;
 our $dbh;
 our $dbh2;
+our $db_backup = 0;
+our $db_backup_interval = 2;
+our $db_backup_delete = 48;
+our $db_backup_sqlite_path;
+our $db_backup_sqlite_backuppath;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
@@ -227,7 +232,7 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
 
 
 ########################################### Clean XML files...
-print "Cleanup XML and other Files\n";
+print "\nCleanup XML and other Files\n";
 
 if ($cleanup_recordingfiles && -d $cleanup_recordingdir) {
    &checkdir($cleanup_recordingdir, 1);
@@ -235,9 +240,49 @@ if ($cleanup_recordingfiles && -d $cleanup_recordingdir) {
    Log::log("Skipping recordingfiles cleanup");
 }
 
-print "END\n\n";
+########################################## DB Backup
+
+print "\nDB Backup\n";
+
+if ($db_backup) {
+	if (!-d $db_backup_sqlite_backuppath) {
+		mkdir $db_backup_sqlite_backuppath;
+	}
+
+        my $newest = 99999999999999;	
+        my @files = glob("$db_backup_sqlite_backuppath\\*");
+        foreach my $dir (@files) {
+		$dir = $db_backup_sqlite_backuppath."\\".$dir;
+		next if (!-d $dir || $dir =~ /^\./);
+      	        # in Stunden
+	        my $creation = int((time() - (stat($dir))[10])/60/60);
+		if ($creation > $db_backup_delete) {
+                   Log::log("delete $dir - was created $creation hours ago");
+                   _rm_dir($dir);
+	        }
+	        $newest = $creation if ($newest > $creation);
+	}
+	if ($newest > $db_backup_interval) {
+		Log::log("Last Backup is $newest hours old ($newest > $db_backup_interval)");
+		my ($sec,$min,$hour,$heutetag,$heutemonat,$heutejahr,$wday,$yday,$isdst) = localtime(time());
+		$heutemonat++;$heutejahr+=1900;
+		$hour = sprintf "%02d",$hour;
+		$min = sprintf "%02d",$min;
+		$sec = sprintf "%02d",$sec;
+		$heutemonat = sprintf "%02d",$heutemonat;
+		$heutetag = sprintf "%02d",$heutetag;
+		Log::log("Create new Backup $db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour");
+        	if (!-d "$db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour") {
+        		mkdir "$db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour";
+			system("xcopy /Y $db_backup_sqlite_path $db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour\\");
+         	}
+        }
+} else {
+   Log::log("Skipping DBBackup");
+}
 
 
+Log::log("END\n");
 
 sleep($sleep);
 
@@ -247,7 +292,7 @@ exit;
 
 #### SUBS
 
-sub _rm_dir($) {
+sub _rm_dir {
   my $dir = shift;
 
   print "\tdelete dir $dir\n";

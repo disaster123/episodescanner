@@ -10,7 +10,7 @@ rmdir /S /Q build\bin
 
 xcopy ..\*.dll build
 xcopy ..\run.bat build
-xcopy ..\config.txt build
+xcopy ..\config.sample.txt build
 xcopy /kreisch ..\tmp build\tmp
 
 rmdir /S /Q build\tmp\.svn

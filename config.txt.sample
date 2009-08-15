@@ -1,7 +1,16 @@
 
+# rename me to config.txt
+
 # TVDB (www.thetvdb.com) API Key - NOT Account Identifier
 # you can create your own API key in your account on www.thetvdb.com
 $tvdb_apikey = '';
+
+# is does a database backup every X hours
+$db_backup = 1;
+$db_backup_interval = 2; # in hours
+$db_backup_delete = 48; # delete backups older than
+$db_backup_sqlite_path = 'O:\DB\*.db3';
+$db_backup_sqlite_backuppath = 'O:\DB\backup';
 
 # activate search on wunschliste.de
 $use_wunschliste = 1;
