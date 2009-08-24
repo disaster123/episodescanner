@@ -5,8 +5,8 @@ my $LOGFH;
 
 
 sub start {
-    open($LOGFH, ">log.txt");
-    close($LOGFH);
+#    open($LOGFH, ">log.txt");
+#    close($LOGFH);
 }
 
 
