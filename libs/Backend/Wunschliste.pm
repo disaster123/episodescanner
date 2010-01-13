@@ -23,8 +23,10 @@ my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
 my $ss = chr(223);
 
 sub new {
-    my $self = bless {};
+  my $self = bless {};
 
+  $self->{'debug_counter'} = 0;
+  
   return $self;
 }
 
@@ -41,8 +43,12 @@ sub search {
   my $page = _myget("http://www.wunschliste.de/index.pl", ( query_art => 'titel', query => $seriesname ));
 
   # test if it is directly a result page
-  if ($page =~ m#<a\s+href="/(\d+)/episoden">#i) {
-     $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $1, mp => '1'));
+  # <link rel="ALTERNATE" type="application/rss+xml" title="Mister Maker TV-Vorschau (RSS)" href="/xml/rss.pl?s=13103">
+  # if ($page =~ m#<link[^\>]+?type="application/rss+xml"[^\>]+?\s+href="/xml/rss.pl\?s=(\d+)"#i) {
+  if ($page =~ m#<link[^\>]*href="/xml/rss\.pl\?s=(\d+)"#i) {
+     my $uri = $1;
+     Log::log("\tGet xml/rss via ID $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+     $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $uri, mp => '1'));
   } else {
         # Try to get all Series
         #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>
@@ -50,19 +56,18 @@ sub search {
         # <a href="/12391"><strong><u>90210</u></strong></a>
         if ($page =~ m#<a\s+href="/(\d+)">(<strong><u>)*$t(</u></strong>)*#i) {
            my $uri = $1;
-	   Log::log("Found page $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+           Log::log("\tGet xml/rss via ID $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
            $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $uri, mp => '1'));
 	} else {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
-		   open($FH, ">page.htm");
+		   open($FH, ">wunschliste_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
 		   close($FH);
-		   print "Press enter to continue\n";
-		   <STDIN>;
+           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 0)
 	   }
 
-           Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Wunschliste");
+       Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Wunschliste");
 	   return (0, 0);
 	}
   }
@@ -78,12 +83,18 @@ sub search {
   foreach my $fs_title (sort keys %staffeln) {
         my $regtest = $self->staffeltitle_to_regtest($fs_title);
 
+		if (!defined $staffeln{$fs_title}{S}) {
+            Log::log("\tSkipping $regtest - no episode or series information at wunschliste", 0);
+			next;
+        }
+		
         $regtest = encode($encoding, $regtest);
         if (lc($episodename_search) eq lc($regtest)) {
-	     Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-	     # found number so return
+	         Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+			 
+	         # found number so return
              return ($staffeln{$fs_title}{S}, $staffeln{$fs_title}{E});
-	} else {
+        } else {
              my $distance = distance(lc($episodename_search), lc($regtest));
              Log::log("\t-$episodename_search- =~ -$fs_title- =~ -$regtest- => ".$distance, 0);
 
@@ -99,24 +110,16 @@ sub search {
   } # END foreach staffeln from resultpage
 
   if ($fuzzy{distance} <= $fuzzy{maxdistance} && $fuzzy{episodenumber} ne "" && $fuzzy{seasonnumber} ne "" && $episodenumber eq "" and $seasonnumber eq "") {
-       $episodenumber = $fuzzy{episodenumber};
-       $seasonnumber = $fuzzy{seasonnumber};
-       Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}");
-   } else {
-       Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 0);
-   }
+      $episodenumber = $fuzzy{episodenumber};
+      $seasonnumber = $fuzzy{seasonnumber};
+      Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}");
+  } elsif (defined $fuzzy{seasonnumber}) { # perhaps we have nothing found so then do not print anything seasonnumber
+      Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 0);
+  }
    
    if ($seasonnumber eq "0" || $seasonnumber eq "") {
            Log::log("\tfound series but not episode \"$episodename\" at Wunschliste");
-	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
-		   my $FH;
-		   open($FH, ">page.htm");
-		   print $FH $page;
-		   close($FH);
-		   print "Press enter to continue\n";
-		   <STDIN>;
-	   }
-    }
+   }
 	
  return ($seasonnumber, $episodenumber);
 }

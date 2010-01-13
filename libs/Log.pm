@@ -5,10 +5,12 @@ my $LOGFH;
 
 
 sub start {
+   my $rot = shift || 0;
+   
    # Rotate Log
-   if (-s "log.txt" > (1024*1024*5)) {
-      rename "log.old.txt", "log.old.old.txt";
-      rename "log.txt", "log.old.txt";
+   if ($rot || (-s "log.txt" > (1024*1024*5))) {
+      rename "log.old.txt", "log.old.old.txt" if (!$rot);
+      rename "log.txt", "log.old.txt" if (!$rot);
       open($LOGFH, ">log.txt");
       close($LOGFH);
       Log::log("\nLog rotated\n----------------------------------------------------------------------------------------");

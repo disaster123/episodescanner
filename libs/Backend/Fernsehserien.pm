@@ -22,7 +22,9 @@ my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
 my $ss = chr(223);
 
 sub new {
-    my $self = bless {};
+  my $self = bless {};
+
+  $self->{'debug_counter'} = 0;
 
   return $self;
 }
@@ -59,14 +61,13 @@ sub search {
 	} else {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
-		   open($FH, ">page.htm");
+		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
 		   close($FH);
-		   print "Press enter to continue\n";
-		   <STDIN>;
+           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 0)
 	   }
 	   
-           Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Fernsehserien");
+       Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Fernsehserien");
 	   return (0, 0);
 	}
   }
@@ -118,14 +119,13 @@ sub search {
    }
    
    if ($seasonnumber eq "0" || $seasonnumber eq "") {
-           Log::log("\tfound series but not episode \"$episodename\" at Fernsehserien");
+       Log::log("\tfound series but not episode \"$episodename\" at Fernsehserien");
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
-		   open($FH, ">page.htm");
+		   open($FH, ">wunschliste_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
 		   close($FH);
-		   print "Press enter to continue\n";
-		   <STDIN>;
+           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 0)
 	   }
     }
 	
