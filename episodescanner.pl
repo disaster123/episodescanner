@@ -89,7 +89,7 @@ if ($use_tv_tb && $tvdb_apikey eq "") {
 # cp1252
 our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
 Log::log("got Win32 Codepage: ".$w32encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-our $encoding = ($w32encoding ? res4TR has an ownolve_alias($w32encoding) : '')  || '';
+our $encoding = ($w32encoding ? resolve_alias($w32encoding) : '')  || '';
 Log::log("got resolved alias: ".$encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 
 if ($usemysql) {
