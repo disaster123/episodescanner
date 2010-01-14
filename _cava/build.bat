@@ -4,7 +4,11 @@ rmdir /S /Q episodescanner
 rmdir /S /Q build
 mkdir build
 
-"%PROGRAMFILES%\Cava Packager 1.3\bin\cavapack.exe" project.cavapack
+
+set progpath=%ProgramFiles%
+if not "%ProgramFiles(x86)%".=="". set progpath=%ProgramFiles(x86)%
+
+"%progpath%\Cava Packager 1.3\bin\cavapack.exe" project-local.cavapack
 
 rmdir /S /Q build\bin
 
