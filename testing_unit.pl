@@ -52,6 +52,7 @@ our $b_wl;
 our $b_fs;
 our $b_tvdb;
 our $use_tv_tb;
+our $thetvdb_language = "de";
 our $use_fernsehserien;
 our $use_wunschliste;
 our $cleanup_recordingdb;
@@ -67,13 +68,17 @@ our $db_backup_sqlite_backuppath;
 
 Log::start(1);
 
+die "cannot find config.txt\n\n" if (!-e "config.txt");
+eval('push(@INC, "."); do "config.txt";');
+die $@."\n\n" if ($@);
+
 $tvdb_apikey = "24D235D27EFD8883";
 Log::log("use global TVDB API Key");
 
 # Build search objects
 $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
-$b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey);
+$b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
 
 my $seriesname = $ARGV[1];
 my $episodename = $ARGV[2];

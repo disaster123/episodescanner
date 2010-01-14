@@ -29,11 +29,14 @@ sub new {
     my $type = shift;
     $progbasename = shift;
     my $apikey = shift;
+	my $thetvdb_language = shift || 'en';
     my $self = {};
+
+	$self->{language} = $thetvdb_language;
 
     $self->{tvdb} = TVDB::API::new($apikey);
     $self->{tvdb}->setApiKey($apikey);
-    $self->{tvdb}->setLang('de');
+    $self->{tvdb}->setLang($thetvdb_language);
     $self->{tvdb}->setUserAgent("TVDB::API/$TVDB::API::VERSION");
     $self->{tvdb}->setBannerPath("tmp");
     $self->{tvdb}->setCacheDB('tmp/'.$progbasename.'_tvdb.cache');
@@ -42,13 +45,13 @@ sub new {
 
     # delete Cache if it is older than 2 days
     if (-e 'tmp/'.$progbasename.'.cache') {
-	# in Tagen
-	my $creation = int((time() - (stat('tmp/'.$progbasename.'.cache'))[10])/60/60/24);
-	if ($creation > 2) {   # 2 Tage
-                Log::log("deleted TVDB Cache - was $creation days old");
-		# delete TVDB Cache every 2 days
-		unlink('tmp/'.$progbasename.'.cache');
-	}
+        # in Tagen
+        my $creation = int((time() - (stat('tmp/'.$progbasename.'.cache'))[10])/60/60/24);
+        if ($creation > 2) {   # 2 Tage
+          Log::log("deleted TVDB Cache - was $creation days old");
+          # delete TVDB Cache every 2 days
+          unlink('tmp/'.$progbasename.'.cache');
+        }
     }
 
   return bless $self, $type;
@@ -64,29 +67,35 @@ sub search() {
   my $hr;
   my $seriesid = 0;
 
-  Log::log("\tsearch on http://www.thetvdb.com/...");
+  Log::log("\tsearch on http://www.thetvdb.com/ Language: ".$self->{language}."...");
 
   utf8::encode($seriesname);
   eval {
     $hr = $self->{tvdb}->getPossibleSeriesId($seriesname, [0]);
   };
+  Log::log("\tError: $@", 0) if ($@);
+  # Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+
   utf8::decode($seriesname);
 
   # sortiere aufsteigend - damit wir uns die neueste verfügbare ID holen (ACHTUNG Rückwärts siehe unten)
   my @possseries = sort {$b cmp $a} keys %{$hr};
 
   if (scalar(@possseries) == 0) {
-      Log::log("\tWas not able to find series \"$seriesname\" at TheTVDB");
+      Log::log("\tSeries \"$seriesname\" not listed at TheTVDB");
       return (0, 0);
   }
 
-  for my $posserie (@possseries) {
+  my $test_seriesname = $seriesname;
+  $test_seriesname =~ s#[^a-z0-9]##ig;
+  foreach my $posserie (@possseries) {
 	   $hr->{$posserie}->{'SeriesName'} =~ s#\s+$##g;
 	   $hr->{$posserie}->{'SeriesName'} =~ s#^\s+##g;
-	   # for series like samantha who?
-	   $hr->{$posserie}->{'SeriesName'} =~ s#\?$##g;
-	   next if ($hr->{$posserie}->{'language'} ne "de");
-	   next if ($hr->{$posserie}->{'SeriesName'} ne $seriesname);
+	   # remove from series all special characters
+	   my $t = $hr->{$posserie}->{'SeriesName'};
+	   $t =~ s#[^a-z0-9]##ig;
+	   next if ($hr->{$posserie}->{'language'} ne $self->{language});
+	   next if ($t ne $test_seriesname);
 	   $seriesid = $hr->{$posserie}->{'seriesid'};
 	   last;
   }
@@ -97,15 +106,16 @@ sub search() {
   }
 
   if (!defined $self->{cache}{getSeriesAll}{$seriesid}) {
-     ##############print "getSeriesAll Not in Cache\n";
-     eval {
-	$hr = $self->{tvdb}->getSeriesAll($seriesid, [0]);
-     };
-     $self->{cache}{getSeriesAll}{$seriesid} = $hr;
-   } else {
-     ##############print "getSeriesAll In Cache\n";
-     $hr = $self->{cache}{getSeriesAll}{$seriesid};
-   }
+    ##############print "getSeriesAll Not in Cache\n";
+    eval {
+      $hr = $self->{tvdb}->getSeriesAll($seriesid, [0]);
+    };
+    Log::log("\tError: $@", 0) if ($@);
+    $self->{cache}{getSeriesAll}{$seriesid} = $hr;
+  } else {
+    ##############print "getSeriesAll In Cache\n";
+    $hr = $self->{cache}{getSeriesAll}{$seriesid};
+  }
 					
   my %fuzzy = ();
   $fuzzy{distance} = 99;
@@ -131,38 +141,39 @@ sub search() {
 		     my %episodedata;
 
 		     if (!defined $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]}) {
-			     eval {
-	     		        $episodedata = $self->{tvdb}->getEpisodeId($episodes[$episodenr-1]);
-	     		     };
+                 eval {
+                   $episodedata = $self->{tvdb}->getEpisodeId($episodes[$episodenr-1]);
+                 };
+                 Log::log("\tError: $@", 0) if ($@);
 			     $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]} = $episodedata;
-	             } else {
-    		             $episodedata = $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]};
-	             }
-	             %episodedata = %{$episodedata};
-	             next if (!defined $episodedata{'EpisodeName'});
-     		     $episodedata{'EpisodeName'} =~ s#\s+$##;
-     		     $episodedata{'EpisodeName'} =~ s#^\s+##;
+            } else {
+                 $episodedata = $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]};
+            }
+             %episodedata = %{$episodedata};
+             next if (!defined $episodedata{'EpisodeName'});
+             $episodedata{'EpisodeName'} =~ s#\s+$##;
+             $episodedata{'EpisodeName'} =~ s#^\s+##;
 
-     		     if ($seriesname eq "Tatort") {
-     		     	# -Stoever - 36 -
-     		     	$episodedata{'EpisodeName'} =~ s#^\w+\s+-\s+\d+\s+\-\s+##i;
-     		     }
+             if ($seriesname eq "Tatort") {
+               # -Stoever - 36 -
+               $episodedata{'EpisodeName'} =~ s#^\w+\s+-\s+\d+\s+\-\s+##i;
+             }
 
-		     my $regtest = encode($encoding, $self->staffeltitle_to_regtest($episodedata{'EpisodeName'}));
+             my $regtest = encode($encoding, $self->staffeltitle_to_regtest($episodedata{'EpisodeName'}));
 
-     		     if (lc($episodename_search) eq lc($regtest)) {   # NEVER /o as option
-			     return ($episodedata{'SeasonNumber'}, $episodedata{'EpisodeNumber'});
+             if (lc($episodename_search) eq lc($regtest)) {   # NEVER /o as option
+               return ($episodedata{'SeasonNumber'}, $episodedata{'EpisodeNumber'});
 		     } else {
-		            my $distance = distance(lc($episodename_search), lc($regtest));
-		            Log::log("\t-$episodename_search- =~ -$episodedata{'EpisodeName'}- =~ -$regtest- => ".$distance, 0);
-		     
-		            if ($distance < $fuzzy{distance}) {
-		              $fuzzy{distance} = $distance;
-             	              $fuzzy{episodenumber} = $episodedata{'EpisodeNumber'};
-			      $fuzzy{seasonnumber} = $episodedata{'SeasonNumber'};
-		              $fuzzy{name} = $episodedata{'EpisodeName'};
-		              $fuzzy{regtest} = $regtest;
-		            }
+               my $distance = distance(lc($episodename_search), lc($regtest));
+               Log::log("\t-$episodename_search- =~ -$episodedata{'EpisodeName'}- =~ -$regtest- => ".$distance, 0);
+
+               if ($distance < $fuzzy{distance}) {
+                 $fuzzy{distance} = $distance;
+                 $fuzzy{episodenumber} = $episodedata{'EpisodeNumber'};
+                 $fuzzy{seasonnumber} = $episodedata{'SeasonNumber'};
+                 $fuzzy{name} = $episodedata{'EpisodeName'};
+                 $fuzzy{regtest} = $regtest;
+               }
 		     }
 		  } #foreach my $episodenr (1..scalar(@episodes)) {
   } # foreach my $seasonnr (1..scalar(@seasons)) {

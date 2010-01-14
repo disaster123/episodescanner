@@ -61,6 +61,7 @@ our $b_wl;
 our $b_fs;
 our $b_tvdb;
 our $use_tv_tb;
+our $thetvdb_language = "de";
 our $use_fernsehserien;
 our $use_wunschliste;
 our $cleanup_recordingdb;
@@ -113,7 +114,7 @@ Log::log("Recordingdir: $cleanup_recordingdir");
 # Build search objects
 $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
-$b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey);
+$b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
 
 # get all recordings
 %tvserien = &get_recordings();

@@ -1,31 +1,6 @@
 
 # rename me to config.txt
 
-# TVDB (www.thetvdb.com) API Key - NOT Account Identifier
-# you can create your own API key in your account on www.thetvdb.com
-$tvdb_apikey = '';
-
-# is does a database backup every X hours
-$db_backup = 1;
-$db_backup_interval = 2; # in hours
-$db_backup_delete = 48; # delete backups older than
-$db_backup_sqlite_path = 'O:\DB\*.db3';
-$db_backup_sqlite_backuppath = 'O:\DB\backup';
-
-# activate search on wunschliste.de
-$use_wunschliste = 1;
-# activate search on fernsehserien
-$use_fernsehserien = 1;
-# activate search on thetvdb.com
-$use_tv_tb = 1;
-
-# delete recordings from the DB when the file does not exist
-$cleanup_recordingdb = 1;
-# delete empty folders, delet .xml, .txt, .logo, .jpg files (if the .ts file is removed) in recordingdir
-$cleanup_recordingfiles = 1;
-# folder where the recordings are stored
-$cleanup_recordingdir = 'O:\VID';
-
 # 0 is MSSQL | 1 is mysql
 $usemysql = 0;
 
@@ -35,7 +10,38 @@ $dbhost = 'HOMESERVER-PC\SQLEXPRESS';
 $dbname = 'MpTvDb';
 # for mysql mostly root | for mssql sa
 $dbuser = 'sa';
+# standard password when mediaportal has installed the Database Engine is MediaPortal
 $dbpw = 'MediaPortal';
+
+# activate search on wunschliste.de / only GERMAN
+$use_wunschliste = 1;
+
+# activate search on fernsehserien / only GERMAN
+$use_fernsehserien = 1;
+
+# activate search on thetvdb.com
+$use_tv_tb = 1;
+# TVDB (www.thetvdb.com) API Key - NOT Account Identifier
+# you can create your own API key in your account on www.thetvdb.com
+# if you leave this field blank it would use a global API key
+# so this is optional
+$tvdb_apikey = '';
+$thetvdb_language = 'de'; # language for thetvdb 2 Character ISO Code like (de, en, nl, dk, ...)
+
+# database backup every X hours
+$db_backup = 1; # on/off
+$db_backup_interval = 2; # in hours
+$db_backup_delete = 48; # delete backups older than
+$db_backup_sqlite_path = 'O:\DB\*.db3';
+$db_backup_sqlite_backuppath = 'O:\DB\backup';
+
+# delete recordings from the recordings DB of MP when the file does not exist
+$cleanup_recordingdb = 1; # on / off
+
+# delete empty folders and deletes .xml, .txt, .logo, .jpg files (if the .ts file is removed) in recordingdir
+$cleanup_recordingfiles = 1;
+# folder where the recordings are stored
+$cleanup_recordingdir = 'O:\VID';
 
 # after each run sleep for x seconds
 $sleep = 60;
