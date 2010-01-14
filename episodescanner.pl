@@ -411,7 +411,7 @@ sub load_and_clean_cache {
 	   foreach my $title (keys %{$seriescache{$serie}}) {
 		if ($seriescache{$serie}{$title}{seriesNum} eq "UNKNOWN" && $seriescache{$serie}{$title}{time} < (time()-(60*60*24*1))) {
 			print "Delete $serie $title from cache with UNKNOWN\n";
-			delete($seriescache{$serie}{$title});How
+			delete($seriescache{$serie}{$title});
 		}
 		if ($seriescache{$serie}{$title}{seriesNum} ne "UNKNOWN" && $seriescache{$serie}{$title}{time} < (time()-(60*60*24*14))) {
 			print "Delete $serie $title from cache with $seriescache{$serie}{$title}{seriesNum}\n";
