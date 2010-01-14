@@ -8,10 +8,15 @@ $usemysql = 0;
 # for MySQL simply insert the hostname / IP
 $dbhost = 'HOMESERVER-PC\SQLEXPRESS';
 $dbname = 'MpTvDb';
-# for mysql mostly root | for mssql sa
+# for mysql root | for mssql sa
 $dbuser = 'sa';
 # standard password when mediaportal has installed the Database Engine is MediaPortal
 $dbpw = 'MediaPortal';
+
+# 4tr (4therecord)
+$use4tr = 0; # on/off
+# we use the database data from above
+$dbname_4tr = 'fortherecord';
 
 # activate search on wunschliste.de / only GERMAN
 $use_wunschliste = 1;

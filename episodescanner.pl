@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-
 BEGIN {
   $| = 1;
   
@@ -11,10 +10,11 @@ BEGIN {
 }
 
 END {
-  $dbh->disconnect() if ($dbh);
-  $dbh2->disconnect() if ($dbh2);
+  $dbh->disconnect() if (defined $dbh);
+  $dbh2->disconnect() if (defined $dbh2);
 }
 
+use lib 'lib';
 use lib 'libs';
 use lib '.';
 use warnings;
@@ -37,11 +37,8 @@ use LWP::Simple;
 use LWP::UserAgent;
 use URI;
 use XML::Simple;
-
-# cp1252
-my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
-my $encoding = $w32encoding ? resolve_alias($w32encoding) : '';
-
+use HTML::Entities;
+ 
 our $progbasename = &basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
 $ENV{DEBUG} = $DEBUG;
@@ -74,6 +71,8 @@ our $db_backup_interval = 2;
 our $db_backup_delete = 48;
 our $db_backup_sqlite_path;
 our $db_backup_sqlite_backuppath;
+our $use4tr = 0;
+our $dbname_4tr = 'fortherecord';
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
@@ -87,26 +86,57 @@ if ($use_tv_tb && $tvdb_apikey eq "") {
   $tvdb_apikey = "24D235D27EFD8883";
   Log::log("use global TVDB API Key");
 }
-
+# cp1252
+our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
+Log::log("got Win32 Codepage: ".$w32encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+our $encoding = ($w32encoding ? res4TR has an ownolve_alias($w32encoding) : '')  || '';
+Log::log("got resolved alias: ".$encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 
 if ($usemysql) {
-  Log::log("using MySQL", 1);
-  $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
-                                                   $dbuser, $dbpw) or die "Can't connect MYSQL: $DBI::errstr\n\n";
-  $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
-                                                   $dbuser, $dbpw) or die "Can't connect MYSQL: $DBI::errstr\n\n";
-  $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
-  $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
+  Log::log("using MySQL", 0);
+  if ($use4tr) {
+    Log::log("using 4TR Database", 0);
+    $dbh = DBI->connect( "dbi:mysql:database=$dbname_4tr:hostname=$dbhost",
+                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
+    $dbh2 = DBI->connect( "dbi:mysql:database=$dbname_4tr:hostname=$dbhost",
+                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
+    $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
+    $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
+  } else {
+    $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
+                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
+    $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
+                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
+    $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
+    $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
+  }
 } else {
-  Log::log("using MSSQL", 1);
-  my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=$dbname";
+  Log::log("using MSSQL", 0);
+  my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=";
   my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
-  $dbh = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect MSSQL: $DBI::errstr\n\n";
-  $dbh2 = DBI->connect($dsn, $dbuser, $dbpw, $db_options) or die "Can't connect MSSQL: $DBI::errstr\n\n";
-  $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;$dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
+  if ($use4tr) {
+    Log::log("using 4TR Database", 0);
+    $dbh = DBI->connect($dsn.$dbname_4tr, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
+    $dbh2 = DBI->connect($dsn.$dbname_4tr, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
+    $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;
+    $dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
+  } else {
+    $dbh = DBI->connect($dsn.$dbname, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
+    $dbh2 = DBI->connect($dsn.$dbname, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
+    $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;
+	$dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
+  }
 }
 
-Log::log("Recordingdir: $cleanup_recordingdir");
+if ($use4tr) {
+    Log::log("Using 4TR disabling some incompatible settings");   
+    Log::log("cleanup_recordingdb = 0");   
+	$cleanup_recordingdb = 0;
+    Log::log("cleanup_recordingfiles = 0");   
+	$cleanup_recordingfiles = 0;
+}
+
+Log::log("Recordingdir: $cleanup_recordingdir") if ($cleanup_recordingfiles);
 
 # load series cache
 &load_and_clean_cache();
@@ -127,79 +157,92 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
 	RESCAN:
 
-        # GO through show in EPG DB for tv_serie
-        $tv_serie = encode($encoding, $tv_serie);
-        my $abf_g;
-#        if (!$DEBUG) {
-          $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND seriesNum='' AND title LIKE ?;");
-#        } else {
-#          $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND title LIKE ?;");
-#        }
-        $abf_g->execute($tv_serie) or die $DBI::errstr;
-        while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
-    	     # print Dumper($akt_tv_serie_h)."\n\n";
+    # GO through show in EPG DB for tv_serie
+    $tv_serie = encode($encoding, $tv_serie) if (defined $encoding && $encoding ne '');
+    my $abf_g;
+    if ($use4tr) {
+       $abf_g = $dbh->prepare("SELECT SubTitle as episodeName, Title as title, GuideProgramId as idProgram
+	                               FROM guideprogram WHERE SubTitle IS NOT NULL AND (SeriesNumber IS NULL OR EpisodeNumber IS NULL) 
+                                   AND title LIKE ?;");
+	} else {
+       $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND seriesNum='' AND title LIKE ?;");
+    }
+    $abf_g->execute($tv_serie) or die $DBI::errstr;
+    while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
+        # print Dumper($akt_tv_serie_h)."\n\n";
     	     
-             my $seriesname = $tv_serie;
-             $seriesname =~ s#\s+$##;
-             $seriesname =~ s#^\s+##;
-             my $episodename = $akt_tv_serie_h->{'episodeName'};
-             $episodename =~ s#\s+$##;
-             $episodename =~ s#^\s+##;
-	     Log::log("\n\tEpisode: $episodename");
+        my $seriesname = $tv_serie;
+        $seriesname =~ s#\s+$##;
+        $seriesname =~ s#^\s+##;
+        my $episodename = $akt_tv_serie_h->{'episodeName'};
+        $episodename =~ s#\s+$##;
+        $episodename =~ s#^\s+##;
+        Log::log("\n\tEpisode: $episodename");
 
-	     # check Cache
-	     # defined and not UNKNOWN
-	     if (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
+        # check Cache
+        # defined and not UNKNOWN
+        if (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
 	     					$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} ne "UNKNOWN") {
-		Log::log("\tSeries in Cache ".$akt_tv_serie_h->{'episodeName'}." S".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}."E".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum});
+							
+            Log::log("\tSeries in Cache ".$akt_tv_serie_h->{'episodeName'}." S".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}."E".$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum});
+			my $abf;
+			if ($use4tr) {
+		       $abf = $dbh2->prepare("UPDATE guideprogram SET SeriesNumber=?,EpisodeNumber=? WHERE GuideProgramId=?;");
+			} else {
+		       $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
+			}
+		    my $a = $abf->execute($seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}, 
+					            $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum}, 
+								$akt_tv_serie_h->{'idProgram'}) or die $DBI::errstr;
+		    $abf->finish();
+		    next;
+            # defined and UNKNOWN
+        } elsif (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
+		        		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} eq "UNKNOWN") {
+		    
+			Log::log("\tSeries in Cache as unknown ".$akt_tv_serie_h->{'episodeName'});
+		    next;		
+        }
 
-		my $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
-		my $a = $abf->execute($seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum}, 
-					$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum}, $akt_tv_serie_h->{'idProgram'}) or die $DBI::errstr;
-		$abf->finish();
-
-		next;
-              # defined and UNKNOWN
-      	      } elsif (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
-				$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} eq "UNKNOWN") {
-		Log::log("\tSeries in Cache as unknown ".$akt_tv_serie_h->{'episodeName'});
-		next;		
-	      }
-
-	      # start a new search on fernsehserien.de
-	      my ($episodenumber, $seasonnumber) = ("", "");
+        # start a new search on fernsehserien.de
+        my ($episodenumber, $seasonnumber) = ("", "");
 	      
-	      if ($use_wunschliste) {
-	         ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
-              }
-	      if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-	         ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
-              }
-	      if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-		 ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
-	      }
+        if ($use_wunschliste) {
+            ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
+        }
+	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
+	        ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
+        }
+	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
+		    ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
+	    }
 	      
-	      if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
+	    if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = $seasonnumber;
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum} = $episodenumber;
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{time} = time();
 			
-		my $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
-		my $a = $abf->execute($seasonnumber, $episodenumber, $akt_tv_serie_h->{'idProgram'}) or die $DBI::errstr;
-		$abf->finish();
+			my $abf;
+			if ($use4tr) {
+		       $abf = $dbh2->prepare("UPDATE guideprogram SET SeriesNumber=?,EpisodeNumber=? WHERE GuideProgramId=?;");
+			} else {
+		       $abf = $dbh2->prepare("UPDATE program SET seriesNum=?,episodeNum=? WHERE idProgram=?;");
+			}
+            my $a = $abf->execute($seasonnumber, $episodenumber, $akt_tv_serie_h->{'idProgram'}) or die $DBI::errstr;
+            $abf->finish();
 
-  	        Log::log("\tS${seasonnumber}E${episodenumber} => $episodename");
-						
-	      } else {
-		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = 'UNKNOWN';
-		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum} = 'UNKNOWN';
-		$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{time} = time();
+            Log::log("\tS${seasonnumber}E${episodenumber} => $episodename");
 
-  	        Log::log("\tNOTHING FOUND => $seriesname $episodename");
-	      }
+        } else {
+            $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = 'UNKNOWN';
+            $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{episodeNum} = 'UNKNOWN';
+            $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{time} = time();
 
-  } # end episode of a series
-  $abf_g->finish();
+            Log::log("\tNOTHING FOUND => $seriesname $episodename");
+        }
+
+    } # end episode of a series
+    $abf_g->finish();
 
 } # end series
 
@@ -210,9 +253,9 @@ Log::log("END seriessearch\n");
 
 
 ########################################### Clean RecordingsDB
-Log::log("Cleanup RecordingsDB");
-
 if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
+  Log::log("Cleanup RecordingsDB");
+
   my $abf_g = $dbh->prepare("SELECT * FROM recording;");
   $abf_g->execute() or die $DBI::errstr;
   while (my $aktrec = $abf_g->fetchrow_hashref()) {
@@ -232,9 +275,9 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
 
 
 ########################################### Clean XML files...
-print "\nCleanup XML and other Files\n";
-
 if ($cleanup_recordingfiles && -d $cleanup_recordingdir) {
+   print "\nCleanup XML and other Files\n";
+   
    &checkdir($cleanup_recordingdir, 1);
 } else {
    Log::log("Skipping recordingfiles cleanup");
@@ -242,9 +285,9 @@ if ($cleanup_recordingfiles && -d $cleanup_recordingdir) {
 
 ########################################## DB Backup
 
-print "\nDB Backup\n";
-
 if ($db_backup) {
+    print "\nDB Backup\n";
+	
 	if (!-d $db_backup_sqlite_backuppath) {
 		mkdir $db_backup_sqlite_backuppath;
 	}
@@ -271,11 +314,11 @@ if ($db_backup) {
 		$heutemonat = sprintf "%02d",$heutemonat;
 		$heutetag = sprintf "%02d",$heutetag;
 		Log::log("Create new Backup $db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour");
-        	if (!-d "$db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour") {
-        		mkdir "$db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour";
-			system("xcopy /Y $db_backup_sqlite_path $db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour\\");
-         	}
+        if (!-d "$db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour") {
+          mkdir "$db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour";
+          system("xcopy /Y $db_backup_sqlite_path $db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour\\");
         }
+    }
 } else {
    Log::log("Skipping DBBackup");
 }
@@ -368,7 +411,7 @@ sub load_and_clean_cache {
 	   foreach my $title (keys %{$seriescache{$serie}}) {
 		if ($seriescache{$serie}{$title}{seriesNum} eq "UNKNOWN" && $seriescache{$serie}{$title}{time} < (time()-(60*60*24*1))) {
 			print "Delete $serie $title from cache with UNKNOWN\n";
-			delete($seriescache{$serie}{$title});
+			delete($seriescache{$serie}{$title});How
 		}
 		if ($seriescache{$serie}{$title}{seriesNum} ne "UNKNOWN" && $seriescache{$serie}{$title}{time} < (time()-(60*60*24*14))) {
 			print "Delete $serie $title from cache with $seriescache{$serie}{$title}{seriesNum}\n";
@@ -381,9 +424,28 @@ sub load_and_clean_cache {
 sub get_recordings() {
 	my %recs;
 	
-	my $abf = $dbh->prepare("SELECT * FROM schedule;");
+	my $abf;
+	if ($use4tr) {
+	   # 4TR stores it recording rules in XML Style...
+       $abf = $dbh->prepare("SELECT Name, RulesXml FROM schedule WHERE IsActive = 1 AND IsOneTime = 0 AND RulesXml LIKE '%TitleEquals%';");
+	} else {
+       $abf = $dbh->prepare("SELECT * FROM schedule;");
+	}
 	$abf->execute() or die $DBI::errstr;
 	while (my $aktrec = $abf->fetchrow_hashref()) {
+	   if (defined $aktrec->{'RulesXml'}) {
+	       # extract title from RulesXML
+		   Log::log("\t".Dumper($aktrec), 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+		   if ($aktrec->{'RulesXml'} =~ m#<rule type="TitleEquals"><args><anyType xsi:type="xsd:string">([^\<]+)</anyType></args></rule>#i) {
+		      my $programName = $1;
+			  
+		      $aktrec->{'programName'} = decode_entities($programName);
+              Log::log("\t Extracted and decoded ".$aktrec->{'programName'}." from 4TR XML-Rule", 1);
+		   } else {
+              Log::log("\tSkip ".$aktrec->{'Name'}." cannot find programName in 4TR XML-Rule", 1);
+              next;
+		   }
+	   }
 	   $recs{$aktrec->{'programName'}} = 1;
 	}
 	$abf->finish();

@@ -25,7 +25,7 @@ sub log {
     my $noprint = shift;
     my $pre = "";
     
-    print "$l\n" if (!defined $noprint);
+    print "$l\n" if (!defined $noprint || $noprint == 0);
 
     if ($l =~ m#^((\n|\r)+)(.*)$#) {
       $pre = $1;

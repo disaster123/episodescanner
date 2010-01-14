@@ -34,13 +34,15 @@ sub new {
 
 	$self->{language} = $thetvdb_language;
 
-    $self->{tvdb} = TVDB::API::new($apikey);
-    $self->{tvdb}->setApiKey($apikey);
-    $self->{tvdb}->setLang($thetvdb_language);
-    $self->{tvdb}->setUserAgent("TVDB::API/$TVDB::API::VERSION");
-    $self->{tvdb}->setBannerPath("tmp");
-    $self->{tvdb}->setCacheDB('tmp/'.$progbasename.'_tvdb.cache');
-    
+    $self->{tvdb} = TVDB::API::new(
+	                    {
+	                       apikey    => $apikey,
+                           lang      => $thetvdb_language,
+                           cache     => 'tmp/'.$progbasename.'_tvdb.cache',
+                           banner    => 'tmp',
+                           useragent => "TVDB::API/$TVDB::API::VERSION"
+                        });
+	
     $self->{cache} = ();
 
     # delete Cache if it is older than 2 days
@@ -75,7 +77,6 @@ sub search() {
   };
   Log::log("\tError: $@", 0) if ($@);
   # Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-
   utf8::decode($seriesname);
 
   # sortiere aufsteigend - damit wir uns die neueste verfügbare ID holen (ACHTUNG Rückwärts siehe unten)
@@ -126,7 +127,7 @@ sub search() {
       $episodename =~ s#^[a-z]+\:\s+##i;
   }
   my $episodename_search = $self->staffeltitle_to_regtest($episodename);
-  $episodename_search = encode($encoding, $episodename_search);
+  $episodename_search = encode($encoding, $episodename_search) if (defined $encoding && $encoding ne '');;
 
   # Rückwärts so kommen erst neuere
   my @seasons = @{$hr->{Seasons}};
@@ -159,13 +160,14 @@ sub search() {
                $episodedata{'EpisodeName'} =~ s#^\w+\s+-\s+\d+\s+\-\s+##i;
              }
 
-             my $regtest = encode($encoding, $self->staffeltitle_to_regtest($episodedata{'EpisodeName'}));
-
+             my $regtest = $self->staffeltitle_to_regtest($episodedata{'EpisodeName'});
+             $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');
+ 
              if (lc($episodename_search) eq lc($regtest)) {   # NEVER /o as option
                return ($episodedata{'SeasonNumber'}, $episodedata{'EpisodeNumber'});
 		     } else {
                my $distance = distance(lc($episodename_search), lc($regtest));
-               Log::log("\t-$episodename_search- =~ -$episodedata{'EpisodeName'}- =~ -$regtest- => ".$distance, 0);
+               Log::log("\t-$episodename_search- =~ -$episodedata{'EpisodeName'}- =~ -$regtest- => ".$distance, 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 
                if ($distance < $fuzzy{distance}) {
                  $fuzzy{distance} = $distance;
@@ -181,9 +183,9 @@ sub search() {
   if ($fuzzy{distance} <= $fuzzy{maxdistance} && $fuzzy{episodenumber} ne "" && $fuzzy{seasonnumber} ne "" && $episodenumber eq "" and $seasonnumber eq "") {
        $episodenumber = $fuzzy{episodenumber};
        $seasonnumber = $fuzzy{seasonnumber};
-       Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}");
+       Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}", 1);
    } else {
-       Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 0);
+       Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 1);
    }
 
  return ($seasonnumber, $episodenumber);

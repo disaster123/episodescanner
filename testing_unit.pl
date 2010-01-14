@@ -65,6 +65,8 @@ our $db_backup_interval = 2;
 our $db_backup_delete = 48;
 our $db_backup_sqlite_path;
 our $db_backup_sqlite_backuppath;
+our $use4tr = 0;
+our $4tr_dbname = 'fortherecord';
 
 Log::start(1);
 

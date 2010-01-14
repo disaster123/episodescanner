@@ -64,7 +64,7 @@ sub search {
 		   open($FH, ">wunschliste_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
 		   close($FH);
-           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 0)
+           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1);
 	   }
 
        Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Wunschliste");
@@ -90,13 +90,13 @@ sub search {
 		
         $regtest = encode($encoding, $regtest);
         if (lc($episodename_search) eq lc($regtest)) {
-	         Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	         Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 			 
 	         # found number so return
              return ($staffeln{$fs_title}{S}, $staffeln{$fs_title}{E});
         } else {
              my $distance = distance(lc($episodename_search), lc($regtest));
-             Log::log("\t-$episodename_search- =~ -$fs_title- =~ -$regtest- => ".$distance, 0);
+             Log::log("\t-$episodename_search- =~ -$fs_title- =~ -$regtest- => ".$distance, 1);
 
              if ($distance < $fuzzy{distance}) {
                 $fuzzy{distance} = $distance;
