@@ -82,9 +82,10 @@ die "sleep value below 30 not allowed - we do not want to stress the websites to
 
 Log::start();
 
-if ($use_tv_tb && $tvdb_apikey eq "") {
+if (!defined $tvdb_apikey || $tvdb_apikey eq "") {
   $tvdb_apikey = "24D235D27EFD8883";
-  Log::log("use global TVDB API Key");
+  # we need to todo it this strange way as otherwise we get problems with the init of thetvdb backend
+  Log::log("use global TVDB API Key") if ($use_tv_tb);
 }
 # cp1252
 our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
