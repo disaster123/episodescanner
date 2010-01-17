@@ -90,7 +90,7 @@ sub search {
   foreach my $fs_title (sort keys %staffeln) {
         my $regtest = $self->staffeltitle_to_regtest($fs_title);
 
-        $regtest = encode($encoding, $regtest);		     		     
+        $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');		     		     
         if (lc($episodename_search) eq lc($regtest)) {
 	     Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	     # found number so return
