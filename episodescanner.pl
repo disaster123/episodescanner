@@ -156,7 +156,7 @@ $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
 # Go through all TV Series
 foreach my $tv_serie (sort keys %tvserien)  {
  	# sleep so that there are not too much cpu seconds and speed keeps slow
-	sleep(3);
+	sleep(2);
 	Log::log("\nSerie: $tv_serie");
 
 	RESCAN:
@@ -322,7 +322,7 @@ if ($db_backup) {
 
 
 if ($optimizemysqltables > 0) {
-  Log::log("Optimize MySQL Tables");
+  Log::log("\nOptimize MySQL Tables");
 
   if (!-e "optimizemysqltables.txt" || int((time() - (stat("optimizemysqltables.txt"))[10])/60/60) >= $optimizemysqltables) {
       my $FH;
@@ -349,7 +349,7 @@ if ($optimizemysqltables > 0) {
   }
 }
 
-Log::log("END\n");
+Log::log("\nEND\n");
 
 sleep($sleep);
 
@@ -395,7 +395,7 @@ sub checkdir($$) {
   my $tiefe = shift;
   my $ts_found = 0;
 
-  print "Check dir $dir\n";
+  Log::log("Check dir $dir", 1);
 
   my $DIRH;
   opendir($DIRH, $dir);
@@ -410,12 +410,12 @@ sub checkdir($$) {
   	if (-d "$dir\\$f") {
 		&checkdir("$dir\\$f", $tiefe+1);
 	} elsif (-e "$dir\\$f" && $f =~ /^(.*?)\.log$/ && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 30 minuten
-			print "Delete $f in $dir\n";
+            Log::log("Delete $f in $dir");
 			unlink("$dir\\$f");
 	} elsif (-e "$dir\\$f" && $f =~ /^(.*?)\.(logo\.txt|xml|txt|log|edl|jpg)$/) {
 		my $f_name = $1;
 		if ((!-e "$dir\\$f_name.ts") && (!-e "$dir\\$f_name.avi")) {
-			print "Delete $f in $dir\n";
+            Log::log("Delete $f in $dir");
 			unlink("$dir\\$f");
 		}
 	}
