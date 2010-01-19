@@ -51,6 +51,12 @@ $cleanup_recordingfiles = 1;
 # folder where the recordings are stored
 $cleanup_recordingdir = 'O:\VID';
 
+# you can setup here the running of external commands every X hours
+# example:
+# run C:\path\tool every 5 hours and C:\path2\tool2 every 10 hours
+# @run_external_commans = ('C:\path\tool|5', 'C:\path2\tool2|10');
+@run_external_commans = ();
+
 # after each run sleep for x seconds
 $sleep = 60;
 

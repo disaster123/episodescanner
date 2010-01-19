@@ -72,6 +72,7 @@ our $db_backup_delete = 48;
 our $db_backup_sqlite_path;
 our $db_backup_sqlite_backuppath;
 our $optimizemysqltables = 0;
+our @run_external_commans = ();
 our $use4tr = 0;
 our $dbname_4tr = 'fortherecord';
 
@@ -320,6 +321,7 @@ if ($db_backup) {
     }
 }
 
+####################### Optimize MySQL DBs
 
 if ($optimizemysqltables > 0) {
   Log::log("\nOptimize MySQL Tables");
@@ -348,6 +350,34 @@ if ($optimizemysqltables > 0) {
       $abf->finish();
   }
 }
+
+######################### run external commands
+
+Log::log("\nRun external commands") if (scalar(@run_external_commans) > 0);
+my $c = 0;
+foreach my $l (@run_external_commans) {
+   if ($l =~ /^(.*)\|(\d+)$/) {
+       my $prog = $1;
+	   my $hours = $2;
+
+       if (!-e "run_ext_cmd_$c.txt" || int((time() - (stat("run_ext_cmd_$c.txt"))[10])/60/60) >= $hours) {
+           my $FH;
+           unlink("run_ext_cmd_$c.txt");
+           open($FH, ">run_ext_cmd_$c.txt");
+	       close($FH);
+	       Log::log("Run command $l");
+		   system("start /WAIT ".$prog);
+	   } else {
+	       Log::log("don't run command $l - last run was before $hours") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	   }
+   } else {
+       Log::log("$l is not a valid external commands line");
+   }
+   $c++;
+}
+
+
+
 
 Log::log("\nEND\n");
 
