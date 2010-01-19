@@ -4,6 +4,9 @@
 # 0 is MSSQL | 1 is mysql
 $usemysql = 0;
 
+# optimize mysql tables every X hours (0 for disabling)
+$optimizemysqltables = 2;
+
 # DB Settings
 # for MySQL simply insert the hostname / IP
 $dbhost = 'HOMESERVER-PC\SQLEXPRESS';

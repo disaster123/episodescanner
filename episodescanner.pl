@@ -71,6 +71,7 @@ our $db_backup_interval = 2;
 our $db_backup_delete = 48;
 our $db_backup_sqlite_path;
 our $db_backup_sqlite_backuppath;
+our $optimizemysqltables = 0;
 our $use4tr = 0;
 our $dbname_4tr = 'fortherecord';
 
@@ -112,6 +113,8 @@ if ($usemysql) {
     $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
   }
 } else {
+  # Overwrite mysql setting when using MSSQL
+  $optimizemysqltables = 0;
   Log::log("using MSSQL", 0);
   my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=";
   my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
@@ -270,18 +273,13 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
   }
   $abf_g->finish();  
 
-} else {
-   Log::log("Skipping recordingsdb cleanup");
 }
-
 
 ########################################### Clean XML files...
 if ($cleanup_recordingfiles && -d $cleanup_recordingdir) {
    print "\nCleanup XML and other Files\n";
    
    &checkdir($cleanup_recordingdir, 1);
-} else {
-   Log::log("Skipping recordingfiles cleanup");
 }
 
 ########################################## DB Backup
@@ -320,10 +318,36 @@ if ($db_backup) {
           system("xcopy /Y $db_backup_sqlite_path $db_backup_sqlite_backuppath\\$heutejahr-$heutemonat-$heutetag-$hour\\");
         }
     }
-} else {
-   Log::log("Skipping DBBackup");
 }
 
+
+if ($optimizemysqltables > 0) {
+  Log::log("Optimize MySQL Tables");
+
+  if (!-e "optimizemysqltables.txt" || int((time() - (stat("optimizemysqltables.txt"))[10])/60/60) >= $optimizemysqltables) {
+      my $FH;
+      unlink("optimizemysqltables.txt");
+      open($FH, ">optimizemysqltables.txt");
+	  close($FH);
+
+      my $abf = $dbh->prepare("SHOW databases;");
+      $abf->execute();
+      while (my $db = ($abf->fetchrow_array())[0]) {
+	     next if ($db eq "information_schema");
+         Log::log("optimize `$db`;");
+         $dbh2->do("use `$db`;");
+
+         my $abf2 = $dbh2->prepare("SHOW tables;");
+         $abf2->execute();
+         while (my $table = ($abf2->fetchrow_array())[0]) {
+            Log::log("optimize `$table`;", 1);
+            $dbh2->do("OPTIMIZE table `$table`;");
+         }
+         $abf2->finish();	 
+      }
+      $abf->finish();
+  }
+}
 
 Log::log("END\n");
 
