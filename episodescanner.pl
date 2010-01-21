@@ -325,7 +325,7 @@ if ($db_backup) {
 
 if ($optimizemysqltables > 0) {
   my $creation = 0;
-  $creation = int((time() - (stat("optimizemysqltables.txt"))[10])/60/60) if (-e "optimizemysqltables.txt");
+  $creation = int((time() - (stat("optimizemysqltables.txt"))[9])/60/60) if (-e "optimizemysqltables.txt");
   if (!-e "optimizemysqltables.txt" || $creation >= $optimizemysqltables) {
       Log::log("\nOptimize MySQL Tables last run $creation hours ago.");
 	  
@@ -362,7 +362,7 @@ foreach my $l (@run_external_commans) {
        my $prog = $1;
 	   my $hours = $2;
 
-       if (!-e "run_ext_cmd_$c.txt" || int((time() - (stat("run_ext_cmd_$c.txt"))[10])/60/60) >= $hours) {
+       if (!-e "run_ext_cmd_$c.txt" || int((time() - (stat("run_ext_cmd_$c.txt"))[9])/60/60) >= $hours) {
            my $FH;
            unlink("run_ext_cmd_$c.txt");
            open($FH, ">run_ext_cmd_$c.txt");
