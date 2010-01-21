@@ -324,11 +324,13 @@ if ($db_backup) {
 ####################### Optimize MySQL DBs
 
 if ($optimizemysqltables > 0) {
-  Log::log("\nOptimize MySQL Tables");
-
-  if (!-e "optimizemysqltables.txt" || int((time() - (stat("optimizemysqltables.txt"))[10])/60/60) >= $optimizemysqltables) {
-      my $FH;
+  my $creation = 0;
+  $creation = int((time() - (stat("optimizemysqltables.txt"))[10])/60/60) if (-e "optimizemysqltables.txt");
+  if (!-e "optimizemysqltables.txt" || $creation >= $optimizemysqltables) {
+      Log::log("\nOptimize MySQL Tables last run $creation hours ago.");
+	  
       unlink("optimizemysqltables.txt");
+      my $FH;
       open($FH, ">optimizemysqltables.txt");
 	  close($FH);
 
@@ -434,7 +436,7 @@ sub checkdir($$) {
   
   foreach my $f (@files) {
   	next if ($f eq "." || $f eq "..");
-  	if ($f =~ /\.ts$/i) {
+  	if ($f =~ /\.ts$/i || $f =~ /\.avi$/i || $f =~ /\.mkv$/i) {
 	   $ts_found = 1;
 	}
   	if (-d "$dir\\$f") {
