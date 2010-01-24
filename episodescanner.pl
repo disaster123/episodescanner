@@ -84,10 +84,9 @@ die "sleep value below 30 not allowed - we do not want to stress the websites to
 
 Log::start();
 
-if (!defined $tvdb_apikey || $tvdb_apikey eq "") {
+if ($use_tv_tb && !defined $tvdb_apikey || $tvdb_apikey eq "") {
+  Log::log("use global TVDB API Key") if ();
   $tvdb_apikey = "24D235D27EFD8883";
-  # we need to todo it this strange way as otherwise we get problems with the init of thetvdb backend
-  Log::log("use global TVDB API Key") if ($use_tv_tb);
 }
 # cp1252
 our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
@@ -149,8 +148,9 @@ Log::log("Recordingdir: $cleanup_recordingdir") if ($cleanup_recordingfiles);
 # Build search objects
 $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
-$b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
-
+if ($use_tv_tb) {
+  $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
+}
 # get all recordings
 %tvserien = &get_recordings();
 
