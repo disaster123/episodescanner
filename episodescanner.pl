@@ -150,6 +150,9 @@ $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
 if ($use_tv_tb) {
   $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
+  if (!defined $b_tvdb) {
+     $use_tv_tb = 0;
+  }
 }
 # get all recordings
 %tvserien = &get_recordings();
