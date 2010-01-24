@@ -34,26 +34,14 @@ sub new {
 
 	$self->{language} = $thetvdb_language;
 
-	eval {
-      local $SIG{'ALRM'} = sub {die "ALRM\n\n";};
-	  alarm(5);
-	   Log::log("ALRM SET");
-      $self->{tvdb} = TVDB::API::new(
+    $self->{tvdb} = TVDB::API::new(
 	                    {
 	                       apikey    => $apikey,
                            lang      => $thetvdb_language,
                            cache     => 'tmp/'.$progbasename.'_tvdb.cache',
                            banner    => 'tmp',
-                           useragent => "TVDB::API/$TVDB::API::VERSION",
-						   timeout => 5
+                           useragent => "TVDB::API/$TVDB::API::VERSION"
                         });
-	   Log::log("ALRM returned");
-	  alarm(0);
-	};
-	if ($@) {
-	   Log::log("TheTVDB is offline :-(");
-	   return undef;
-	}
     $self->{cache} = ();
 
     # delete Cache if it is older than 2 days
