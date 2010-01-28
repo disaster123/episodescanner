@@ -74,8 +74,15 @@ sub search {
 
   my $xs = XMLin($page, (KeepRoot => 1));
 
-  my %staffeln = $self->get_staffel_hash($xs);
-
+  my %staffeln;
+  eval {
+     %staffeln = $self->get_staffel_hash($xs);
+  };
+  if ($@) {
+     Log::log($@);
+	 Log::log("ERROR: $@\n".Dumper($xs), 1);
+  }
+  
   my %fuzzy = ();
   $fuzzy{distance} = 99;
   $fuzzy{maxdistance} = 2;

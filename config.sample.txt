@@ -51,6 +51,12 @@ $cleanup_recordingfiles = 1;
 # folder where the recordings are stored
 $cleanup_recordingdir = 'O:\VID';
 
+our $mtn = 0;
+our @mtn_dirs= ();
+our @mtn_fileext = ('.ts');
+our @mtn_options = ('-D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "$filename"',
+                   '-D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "$filename"');
+
 # you can setup here the running of external commands every X hours
 # example:
 # run C:\path\tool every 5 hours and C:\path2\tool2 every 10 hours

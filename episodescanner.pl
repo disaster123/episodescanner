@@ -9,16 +9,15 @@ BEGIN {
   chdir($program_dir);
 }
 
-END {
-  $dbh->disconnect() if (defined $dbh);
-  $dbh2->disconnect() if (defined $dbh2);
-}
-
 use lib 'lib';
 use lib 'libs';
 use lib '.';
+use Carp;
+$SIG{__WARN__} = \&Carp::cluck;
+$SIG{__DIE__} = \&Carp::confess;
 use warnings;
 use strict;
+use mtn;
 use Log;
 use Backend::Wunschliste;
 use Backend::Fernsehserien;
@@ -38,6 +37,7 @@ use LWP::UserAgent;
 use URI;
 use XML::Simple;
 use HTML::Entities;
+
  
 our $progbasename = &basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
@@ -75,12 +75,17 @@ our $optimizemysqltables = 0;
 our @run_external_commans = ();
 our $use4tr = 0;
 our $dbname_4tr = 'fortherecord';
+our $mtn = 0;
+our @mtn_dirs= ();
+our @mtn_fileext = ('.ts');
+our @mtn_options = ('-D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "$filename"',
+                   '-D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "$filename"');
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
 die $@."\n\n" if ($@);
 
-die "sleep value below 30 not allowed - we do not want to stress the websites too much!\n\n" if ($sleep < 30);
+die "sleep value below 30 not allowed - we do not want to stress the websites too much!\n\n" if (!defined $sleep || $sleep < 30);
 
 Log::start();
 
@@ -149,6 +154,7 @@ Log::log("Recordingdir: $cleanup_recordingdir") if ($cleanup_recordingfiles);
 $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
 if ($use_tv_tb) {
+  # as thetvdb build up a connection immediatly it makes sense to do this ONLY if the user wants this
   eval {
      $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
   };
@@ -216,15 +222,32 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
         # start a new search on fernsehserien.de
         my ($episodenumber, $seasonnumber) = ("", "");
-	      
         if ($use_wunschliste) {
-            ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
+		    eval {
+               ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
+			};
+			if ($@) {
+			    Log::log("Wunschlist Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+				Log::log($@, 1);
+			}
         }
 	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-	        ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
+		    eval {
+	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
+            };
+			if ($@) {
+			    Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+				Log::log($@, 1);
+			}
         }
 	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-		    ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
+		    eval {
+		       ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
+			};
+			if ($@) {
+			    Log::log("TheTVDB Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+				Log::log($@, 1);
+			}
 	    }
 	      
 	    if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
@@ -373,7 +396,7 @@ foreach my $l (@run_external_commans) {
            open($FH, ">run_ext_cmd_$c.txt");
 	       close($FH);
 	       Log::log("Run command $l");
-		   system("start /WAIT ".$prog);
+		   system("start /WAIT \"".$prog."\"");
 	   } else {
 	       Log::log("don't run command $l - last run was before $hours") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   }
@@ -383,8 +406,18 @@ foreach my $l (@run_external_commans) {
    $c++;
 }
 
+######################### run MTN
 
+if ($mtn) {
+  Log::log("\nRun mtn");
+  foreach my $dir (@mtn_dirs) {
+    Log::log("run mtn for $dir");
+    &mtn_checkdir($dir, \@mtn_fileext, \@mtn_options);
+  }
+}
 
+$dbh->disconnect() if (defined $dbh);
+$dbh2->disconnect() if (defined $dbh2);
 
 Log::log("\nEND\n");
 
@@ -464,6 +497,40 @@ sub checkdir($$) {
   }
 
 }
+
+sub mtn_checkdir($$$) {
+  my $dir = shift;
+  my $mtn_fileext = shift;
+  my $mtn_options = shift;
+
+  my $mtn_fileext_regex = join('|', map {quotemeta($_)} @$mtn_fileext);
+
+  Log::log("\tCheck dir $dir Regex: $mtn_fileext_regex", 1);
+
+  my $DIRH;
+  opendir($DIRH, $dir);
+  my @files = readdir($DIRH);
+  closedir($DIRH);
+  
+  foreach my $f (@files) {
+  	next if ($f eq "." || $f eq "..");
+
+  	if (-d "$dir\\$f") {
+		&mtn_checkdir("$dir\\$f", $mtn_fileext, $mtn_options);
+	} elsif (-f "$dir\\$f" && $f =~ /($mtn_fileext_regex)$/) {
+	   my $basefile = $f;
+       $basefile =~ s#\.[a-z]+$##;
+       next if (-e "$dir\\$basefile.jpg" && !-z "$dir\\$basefile.jpg");
+	   my $filename = mtn::processfile("$dir\\$f", @$mtn_options);
+       if (!defined $filename) {
+          Log::log("\tThumb not created");  
+       } else {
+          Log::log("\tThumb created: ".$filename);     
+       }
+    }
+  }
+}
+
 
 sub load_and_clean_cache {
 	%seriescache = %{retrieve('tmp/'.$progbasename.".seriescache")} if (-e 'tmp/'.$progbasename.".seriescache");

@@ -9,10 +9,15 @@ BEGIN {
   chdir($program_dir);
 }
 
+use lib 'lib';
 use lib 'libs';
 use lib '.';
+use Carp;
+$SIG{__WARN__} = \&Carp::cluck;
+$SIG{__DIE__} = \&Carp::confess;
 use warnings;
 use strict;
+use mtn;
 use Log;
 use Backend::Wunschliste;
 use Backend::Fernsehserien;
@@ -65,8 +70,15 @@ our $db_backup_interval = 2;
 our $db_backup_delete = 48;
 our $db_backup_sqlite_path;
 our $db_backup_sqlite_backuppath;
+our $optimizemysqltables = 0;
+our @run_external_commans = ();
 our $use4tr = 0;
-our $4tr_dbname = 'fortherecord';
+our $dbname_4tr = 'fortherecord';
+our $mtn = 0;
+our @mtn_dirs= ();
+our @mtn_fileext = ('.ts');
+our @mtn_options = ('-D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "$filename"',
+                   '-D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "$filename"');
 
 Log::start(1);
 
@@ -74,6 +86,21 @@ die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
 die $@."\n\n" if ($@);
 
+die "$0 needs 3 options - wunschliste/fernsehserien/thetvdb/mtn seriesname/filename [episodename]\n\n" if (scalar(@ARGV) == 0 || ($ARGV[0] eq "mtn" && scalar(@ARGV) != 2) || 
+																										   ($ARGV[0] ne "mtn" && scalar(@ARGV) != 3));
+
+
+if ($ARGV[0] eq "mtn") {
+   Log::log("Start: mtn");
+   my $filename = mtn::processfile($ARGV[1], @mtn_options);
+   if (!defined $filename) {
+      Log::log("Thumb not created");  
+   } else {
+      Log::log("Thumb created: ".$filename);     
+   }
+   exit;
+}
+																										   
 $tvdb_apikey = "24D235D27EFD8883";
 Log::log("use global TVDB API Key");
 
@@ -85,9 +112,7 @@ $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
 my $seriesname = $ARGV[1];
 my $episodename = $ARGV[2];
 
-die "$0 needs 3 options - wunschliste/fernsehserien/thetvdb seriesname episodename\n\n" if (scalar(@ARGV) != 3);
-
-Log::log("\n\tEpisode: $episodename");
+Log::log("\n\tEpisode: $episodename") if (defined );
 
 # start a new search on fernsehserien.de
 my ($episodenumber, $seasonnumber) = ("", "");
@@ -105,8 +130,7 @@ if ($ARGV[0] eq "wunschliste") {
   Log::log("Do not know Engine $ARGV[0]");
 }
 	      
-
-Log::log("END seriessearch\n");
+Log::log("END\n");
 
 ## END
 exit;
