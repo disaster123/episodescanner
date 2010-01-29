@@ -1,11 +1,15 @@
 package mtn;
 
-our $VERSION = '0.01';
-
+use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
+use Win32;
 use Data::Dumper;
-use POSIX;
 use strict;
 use warnings;
+our $VERSION = '0.01';
+
+sub ErrorReport{
+        print Win32::FormatMessage( Win32::GetLastError() );
+}
 
 sub processfile {
    my $filename = shift;
@@ -21,33 +25,35 @@ sub processfile {
 
    foreach my $opt (@options) {
        my $test_opt = $opt;
-	   $test_opt =~ s#\$filename#${filename}#ig;
+	   $test_opt =~ s#\$\{filename\}#${filename}#ig;
+	   $test_opt =~ s#\$\{filename_jpg\}#${basefile}.jpg#ig;
 	   
-	   my $childpid = fork();
-	   if ($childpid == 0) {
-          Log::log("Run mtn with: mtn.exe $test_opt") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-		  if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
-	        system("mtn\\mtn.exe $test_opt");
-	      } else {
-	        system("mtn\\mtn.exe $test_opt >>log.txt 2>&1");
-		  }
-	      exit;
-	   }
-	   my $c = 0;
-	   while (++$c < 20 && waitpid($childpid, WNOHANG) >= 0) {
-		  sleep(1);
-	   }
+       Log::log("Run mtn with: mtn.exe $test_opt") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	   my $mtn_obj;
+	   $test_opt =~ m#^(.*?)\s+#;
+	   my $cmd = $1;
+	   Win32::Process::Create($mtn_obj,
+                                "$cmd",
+                                "$test_opt".((defined $ENV{DEBUG} && $ENV{DEBUG} == 1) ? "" : " >>log.txt 2>&1"),
+                                0,
+                                (IDLE_PRIORITY_CLASS),
+                                '.') || die ErrorReport();
+
+       my $c = 0;
 	   my $exitcode;
-	   if ($c == 10) {
-	      Log::log("mtn.exe timed out try to kill PID: $childpid\n");
-		  # kill(9, $childpid); kill does not seem to work as $childpid is only virtual and exec spawns a new process
-		  system("taskkill /F /IM mtn.exe");
+	   $mtn_obj->GetExitCode($exitcode);
+	   while (++$c < 20 && $exitcode == STILL_ACTIVE) {
+		  sleep(1);
+	      $mtn_obj->GetExitCode($exitcode);
+	   }
+	   if ($c == 20) {
+	      Log::log("$cmd timed out try to kill PID: ".$mtn_obj->GetProcessID()."\n");
+		  $mtn_obj->Kill($exitcode);
+		  $exitcode = -1;
           # just to be shure
           unlink("${basefile}_s.jpg") if (-e "${basefile}_s.jpg");
           unlink("${basefile}.jpg") if (-e "${basefile}.jpg");
-		  $exitcode = -1;
 	   }
-       $exitcode ||= $?;
        Log::log("Exited with: $exitcode") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   if ($exitcode == 0 && -e "${basefile}_s.jpg" && !-z "${basefile}_s.jpg") {
 	      rename "${basefile}_s.jpg", "${basefile}.jpg";

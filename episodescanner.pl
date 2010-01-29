@@ -521,6 +521,8 @@ sub mtn_checkdir($$$) {
 	   my $basefile = $f;
        $basefile =~ s#\.[a-z]+$##;
        next if (-e "$dir\\$basefile.jpg" && !-z "$dir\\$basefile.jpg");
+
+       Log::log("\tCreating Thumb for "."$dir\\$f");     
 	   my $filename = mtn::processfile("$dir\\$f", @$mtn_options);
        if (!defined $filename) {
           Log::log("\tThumb not created");  
