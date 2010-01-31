@@ -17,6 +17,9 @@ sub processfile {
 
    my $basefile = $filename;
    $basefile =~ s#\.[a-z]+$##;
+   $basefile =~ s#^.*\/##;
+   my $basedir = $filename;
+   $basedir =~ s#\/[^\/]+$##;
    
    if (-e "${basefile}.jpg" && !-z "${basefile}.jpg") {
       Log::log("Thumb ${basefile}.jpg already exists!");
@@ -25,11 +28,22 @@ sub processfile {
 
    foreach my $opt (@options) {
 	   my $mtn_obj;
+	   my $cmd;
        my $test_opt = $opt;
 	   $test_opt =~ s#\$\{filename\}#${filename}#ig;
-	   $test_opt =~ s#\$\{filename_jpg\}#${basefile}.jpg#ig;
-	   $test_opt =~ m#^(.*?)\s+#;
-	   my $cmd = $1;
+	   $test_opt =~ s#\$\{basefile\}#${basefile}#ig;
+	   $test_opt =~ s#\$\{basedir\}#${basedir}#ig;
+       if ($test_opt =~ /^"([^"]+)"/) {
+	      $cmd = $1;
+	   } else {
+    	  $test_opt =~ m#^(.*?)\s+#;
+    	  $cmd = $1;
+	   }
+
+	   if (!-e $cmd) [
+          Log::log("Command \"$cmd\" not found!");
+		  next:
+	   }
 	   
        Log::log("Run: $test_opt") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   Win32::Process::Create($mtn_obj,
@@ -51,18 +65,18 @@ sub processfile {
 		  $mtn_obj->Kill($exitcode);
 		  $exitcode = -1;
           # just to be shure _s is from mtn
-          unlink("${basefile}_s.jpg") if (-e "${basefile}_s.jpg");
-          unlink("${basefile}.jpg") if (-e "${basefile}.jpg");
+          unlink("${basedir}\\${basefile}_s.jpg") if (-e "${basedir}\\${basefile}_s.jpg");
+          unlink("${basedir}\\${basefile}.jpg") if (-e "${basedir}\\${basefile}.jpg");
 	   }
        Log::log("Exited with: $exitcode") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-	   if ($exitcode == 0 && -e "${basefile}_s.jpg" && !-z "${basefile}_s.jpg") {
-	      rename "${basefile}_s.jpg", "${basefile}.jpg";
-		  return "${basefile}.jpg";
+	   if ($exitcode == 0 && -e "${basedir}\\${basefile}_s.jpg" && !-z "${basedir}\\${basefile}_s.jpg") {
+	      rename "${basedir}\\${basefile}_s.jpg", "${basedir}\\${basefile}.jpg";
+		  return "${basedir}\\${basefile}.jpg";
 	   }
    }
    # just to be shure
    # just to be shure _s is from mtn
-   unlink("${basefile}_s.jpg") if (-e "${basefile}_s.jpg");
+   unlink("${basedir}\\${basefile}_s.jpg") if (-e "${basedir}\\${basefile}_s.jpg");
   
   return undef;
 }
