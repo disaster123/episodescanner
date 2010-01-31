@@ -411,6 +411,7 @@ foreach my $l (@run_external_commans) {
 if ($mtn) {
   Log::log("\nRun mtn");
   foreach my $dir (@mtn_dirs) {
+    next if (!-e $dir || !-d $dir);
     Log::log("run mtn for $dir");
     &mtn_checkdir($dir, \@mtn_fileext, \@mtn_options);
   }

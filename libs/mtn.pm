@@ -24,14 +24,14 @@ sub processfile {
    }
 
    foreach my $opt (@options) {
+	   my $mtn_obj;
        my $test_opt = $opt;
 	   $test_opt =~ s#\$\{filename\}#${filename}#ig;
 	   $test_opt =~ s#\$\{filename_jpg\}#${basefile}.jpg#ig;
-	   
-       Log::log("Run mtn with: mtn.exe $test_opt") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-	   my $mtn_obj;
 	   $test_opt =~ m#^(.*?)\s+#;
 	   my $cmd = $1;
+	   
+       Log::log("Run: $test_opt") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   Win32::Process::Create($mtn_obj,
                                 "$cmd",
                                 "$test_opt".((defined $ENV{DEBUG} && $ENV{DEBUG} == 1) ? "" : " >>log.txt 2>&1"),
@@ -42,15 +42,15 @@ sub processfile {
        my $c = 0;
 	   my $exitcode;
 	   $mtn_obj->GetExitCode($exitcode);
-	   while (++$c < 20 && $exitcode == STILL_ACTIVE) {
+	   while (++$c < 10 && $exitcode == STILL_ACTIVE) {
 		  sleep(1);
 	      $mtn_obj->GetExitCode($exitcode);
 	   }
-	   if ($c == 20) {
+	   if ($c == 10) {
 	      Log::log("$cmd timed out try to kill PID: ".$mtn_obj->GetProcessID()."\n");
 		  $mtn_obj->Kill($exitcode);
 		  $exitcode = -1;
-          # just to be shure
+          # just to be shure _s is from mtn
           unlink("${basefile}_s.jpg") if (-e "${basefile}_s.jpg");
           unlink("${basefile}.jpg") if (-e "${basefile}.jpg");
 	   }
@@ -61,6 +61,7 @@ sub processfile {
 	   }
    }
    # just to be shure
+   # just to be shure _s is from mtn
    unlink("${basefile}_s.jpg") if (-e "${basefile}_s.jpg");
   
   return undef;

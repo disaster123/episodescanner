@@ -36,29 +36,24 @@ sub search {
   my $episodename = shift;
   my $episodenumber = "";
   my $seasonnumber = "";
+  my $id;
 
   Log::log("\tsearch on http://www.wunschliste.de/...");
 
   # http://www.wunschliste.de/index.pl?query_art=titel&query=90210
-  my $page = _myget("http://www.wunschliste.de/index.pl", ( query_art => 'titel', query => $seriesname ));
+  my ($page, $redirect_url) = _myget("http://www.wunschliste.de/index.pl", ( query_art => 'titel', query => $seriesname ));
 
   # test if it is directly a result page
-  # <link rel="ALTERNATE" type="application/rss+xml" title="Mister Maker TV-Vorschau (RSS)" href="/xml/rss.pl?s=13103">
-  # if ($page =~ m#<link[^\>]+?type="application/rss+xml"[^\>]+?\s+href="/xml/rss.pl\?s=(\d+)"#i) {
-  if ($page =~ m#<link[^\>]*href="/xml/rss\.pl\?s=(\d+)"#i) {
-     my $uri = $1;
-     Log::log("\tGet xml/rss via ID $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-     $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $uri, mp => '1'));
+  if ($redirect_url =~ /\/(\d+)$/) {
+     $id = $1;
+  } elsif ($page =~ m#<link[^\>]*href="/xml/rss\.pl\?s=(\d+)"#i) {
+     # <link rel="ALTERNATE" type="application/rss+xml" title="Mister Maker TV-Vorschau (RSS)" href="/xml/rss.pl?s=13103">
+     $id = $1;
+  } elsif ($page =~ m#<a\s+href="/(\d+)">(<strong><u>)*\Q$seriesname\E(</u></strong>)*#i) {
+     # Try to get all Series
+     # <a href="/12391"><strong><u>90210</u></strong></a>
+     $id = $1;
   } else {
-        # Try to get all Series
-        #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>
-        my $t = $seriesname;
-        # <a href="/12391"><strong><u>90210</u></strong></a>
-        if ($page =~ m#<a\s+href="/(\d+)">(<strong><u>)*$t(</u></strong>)*#i) {
-           my $uri = $1;
-           Log::log("\tGet xml/rss via ID $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-           $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $uri, mp => '1'));
-	} else {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
 		   open($FH, ">wunschliste_".++$self->{'debug_counter'}.".htm");
@@ -67,20 +62,26 @@ sub search {
            Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1);
 	   }
 
-       Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Wunschliste");
+       Log::log("\tWas not able to find series/seriesindexpage \"$seriesname\" at Wunschliste");
 	   return (0, 0);
-	}
   }
 
+  Log::log("\tGot series ID $id", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+  $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $id, mp => '1'));
   my $xs = XMLin($page, (KeepRoot => 1));
 
+  if (!ref($xs) || !ref($xs->{epgliste}) || !ref($xs->{epgliste}->{episode})) {
+     Log::log("\tRSS Feed does not contain valid EPG Info");
+     return (0,0);
+  }
+  
   my %staffeln;
   eval {
      %staffeln = $self->get_staffel_hash($xs);
   };
   if ($@) {
      Log::log($@);
-	 Log::log("ERROR: $@\n".Dumper($xs), 1);
+	 Log::log("ERROR: $@\n", 1);
   }
   
   my %fuzzy = ();
@@ -136,7 +137,7 @@ sub get_staffel_hash {
    my $self = shift;
    my $xs = shift;
    my %r;
-	   
+
    foreach my $h (@{$xs->{epgliste}->{episode}}) {
         utf8::decode($h->{episodentitel});
         $r{$h->{episodentitel}}{E} = $h->{episodennummer};
@@ -174,8 +175,12 @@ sub _myget {
 	$uri->query_form(%par);
 	
 	my $resp = $ua->get($uri);
+	my $re_url = "";
+	eval {
+       $re_url = $resp->{_request}->{_uri}->as_string;
+	};
 
-return $resp->content();
+return wantarray ? ($resp->content(), $re_url) : $resp->content();
 }
 
 1;
