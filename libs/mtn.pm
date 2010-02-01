@@ -40,7 +40,7 @@ sub processfile {
     	  $cmd = $1;
 	   }
 
-	   if (!-e $cmd) [
+	   if (!-e $cmd) {
           Log::log("Command \"$cmd\" not found!");
 		  next:
 	   }
