@@ -37,7 +37,15 @@ use LWP::UserAgent;
 use URI;
 use XML::Simple;
 use HTML::Entities;
+use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
 
+
+my $currentProcess;
+if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(), 0)) {
+  $currentProcess->SetPriorityClass(IDLE_PRIORITY_CLASS);
+} else {
+  die "Can not find myself ($^E)\n";
+}
  
 our $progbasename = &basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
