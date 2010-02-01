@@ -44,18 +44,36 @@ $db_backup_sqlite_path = 'O:\DB\*.db3';
 $db_backup_sqlite_backuppath = 'O:\DB\backup';
 
 # delete recordings from the recordings DB of MP when the file does not exist
-$cleanup_recordingdb = 1; # on / off
+$cleanup_recordingdb = 0; # on / off
 
 # delete empty folders and deletes .xml, .txt, .logo, .jpg files (if the .ts file is removed) in recordingdir
-$cleanup_recordingfiles = 1;
+$cleanup_recordingfiles = 0;
 # folder where the recordings are stored
 $cleanup_recordingdir = 'O:\VID';
 
-our $mtn = 0;
-our @mtn_dirs= ();
-our @mtn_fileext = ('.ts');
-our @mtn_options = ('-D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "$filename"',
-                   '-D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "$filename"');
+# use thumb generation?
+$thumbs = 0;
+# create thumbs for the following folders and subfolders
+@thumb_dirs = ('O:\VID', 'D:\VID123\ABC');
+# try to crrate thumb for tiles with the following file extensions
+@thumb_fileext = ('.ts', '.avi', '.mkv');
+# use the following programs to create thumbs
+@thumb_progs = ( {
+                   prog => 'mtn\\mtn.exe -D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "${filename}"',
+                   thumb_filename => '${basedir}\\${basefile}_s.jpg',
+                   timeout => 10,
+                  },
+                  {
+                   prog => '"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe" --video-filter scene -V dummy --intf dummy --dummy-quiet --scene-width=420 --scene-format=jpg --scene-replace --scene-ratio 24 --start-time=600 --stop-time=601 --scene-replace --scene-prefix=thumb --scene-path="C:\\" "${filename}" "vlc://quit"',
+                   thumb_filename => 'C:\\thumb.jpg',
+                   timeout => 3,
+                  },
+                  {
+                   prog => 'mtn\\mtn.exe -D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "${filename}"',
+                   thumb_filename => '${basedir}\\${basefile}_s.jpg',
+                   timeout => 10,
+                  }
+                );
 
 # you can setup here the running of external commands every X hours
 # example:
