@@ -410,7 +410,10 @@ foreach my $l (@run_external_commans) {
 if ($thumbs) {
   Log::log("\nRun thumbnail generation");
   foreach my $dir (@thumb_dirs) {
-    next if (!-e $dir || !-d $dir);
+    if (!-e $dir || !-d $dir) {
+	  Log::log("Dir $dir does not exist!");
+	  next;
+	}
     Log::log("run thumbnailprogs for $dir");
     &thumb_checkdir($dir, \@thumb_fileext, \@thumb_progs);
   }

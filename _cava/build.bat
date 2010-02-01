@@ -15,8 +15,11 @@ rmdir /S /Q build\bin
 xcopy ..\*.dll build
 xcopy ..\*.bat build
 xcopy ..\config.sample.txt build
-xcopy /kreisch ..\tmp build\tmp
 
+xcopy /kreisch ..\mtn build\mtn
+rmdir /S /Q build\mtn\.svn
+
+xcopy /kreisch ..\tmp build\tmp
 rmdir /S /Q build\tmp\.svn
 del /S /Q build\tmp\*
 
