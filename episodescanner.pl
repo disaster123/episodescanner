@@ -532,7 +532,7 @@ sub thumb_checkdir($$$) {
 	   my $basefile = $f;
        $basefile =~ s#\.[a-z]+$##;
        next if (-e "$dir\\$basefile.jpg" && !-z "$dir\\$basefile.jpg");
-	   next if (int((time() - (stat($dir))[9])/60) < 10); 
+	   next if (int((time() - (stat("$dir\\$f"))[9])/60) < 10); 
 
 
        Log::log("\tCreating Thumb for "."$dir\\$f");     
