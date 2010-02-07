@@ -58,7 +58,7 @@ sub processfile {
        Log::log("Run: ".Dumper($prog_h)) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   Win32::Process::Create($mtn_obj,
                                 "$cmd",
-                                "$prog".((defined $ENV{DEBUG} && $ENV{DEBUG} == 1) ? "" : " >>log.txt 2>&1"),
+                                $prog.((defined $ENV{DEBUG} && $ENV{DEBUG} == 1) ? "" : ' >>log.txt 2>>log.txt'),
                                 0,
                                 (IDLE_PRIORITY_CLASS),
                                 '.') || die ErrorReport();
