@@ -298,7 +298,7 @@ Log::log("END seriessearch\n");
 
 ########################################### Clean RecordingsDB
 if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
-  Log::log("Cleanup RecordingsDB");
+  Log::log("\nCleanup RecordingsDB");
 
   my $abf_g = $dbh->prepare("SELECT * FROM recording;");
   $abf_g->execute() or die $DBI::errstr;
@@ -317,7 +317,7 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
 
 ########################################### Clean tvseriescleanup
 if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db) {
-  Log::log("Cleanup tvseriescleanup");
+  Log::log("\nCleanup tvseriescleanup");
 
    my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");
    
@@ -326,6 +326,10 @@ if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db) {
    $sth->execute();
    while (my $data = $sth->fetchrow_hashref()) {
       $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
+
+	  utf8::decode($data->{'EpisodeFilename'});
+	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
+	  $data->{'EpisodeFilename'} = encode($encoding, $data->{'EpisodeFilename'}) if (defined $encoding && $encoding ne '');
 	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
    }
    $sth->finish();
