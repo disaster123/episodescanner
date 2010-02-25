@@ -17,7 +17,7 @@ $SIG{__WARN__} = \&Carp::cluck;
 $SIG{__DIE__} = \&Carp::confess;
 use warnings;
 use strict;
-use mtn;
+use thumbs;
 use Log;
 use Backend::Wunschliste;
 use Backend::Fernsehserien;
@@ -33,6 +33,10 @@ use LWP::Simple;
 use LWP::UserAgent;
 use URI;
 use XML::Simple;
+use DBI;
+use DBD::ODBC;
+use DBD::mysql;
+use DBD::SQLite;
 
 # cp1252
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
@@ -79,6 +83,9 @@ our @mtn_dirs= ();
 our @mtn_fileext = ('.ts');
 our @mtn_options = ('-D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "$filename"',
                    '-D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "$filename"');
+our $cleanup_recordings_tvseries = 0;
+our $cleanup_recordings_tvseries_db = '';
+our $cleanup_recordings_tvseries_db_mainpath = '';
 
 Log::start(1);
 
@@ -86,9 +93,9 @@ die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); do "config.txt";');
 die $@."\n\n" if ($@);
 
-die "$0 needs 3 options - wunschliste/fernsehserien/thetvdb/mtn seriesname/filename [episodename]\n\n" if (scalar(@ARGV) == 0 || ($ARGV[0] eq "mtn" && scalar(@ARGV) != 2) || 
-																										   ($ARGV[0] ne "mtn" && scalar(@ARGV) != 3));
-
+die "$0 needs 3 options - wunschliste/fernsehserien/thetvdb/mtn/tvseriescleanup seriesname/filename [episodename]\n\n" if (scalar(@ARGV) == 0 || ($ARGV[0] eq "mtn" && scalar(@ARGV) != 2) || 
+                                                                                                           ($ARGV[0] eq "tvseriescleanup" && scalar(@ARGV) != 1) || 
+																										   ($ARGV[0] ne "mtn" && $ARGV[0] ne "tvseriescleanup" && scalar(@ARGV) != 3));
 
 if ($ARGV[0] eq "mtn") {
    Log::log("Start: mtn");
@@ -98,6 +105,24 @@ if ($ARGV[0] eq "mtn") {
    } else {
       Log::log("Thumb created: ".$filename);     
    }
+   exit;
+}
+
+if ($ARGV[0] eq "tvseriescleanup") {
+   Log::log("Start: tvseriescleanup");
+   my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");
+   
+   my %tvseries_files;
+   my $sth = $tvseries_dbh->prepare("select * from local_episodes;");
+   $sth->execute();
+   while (my $data = $sth->fetchrow_hashref()) {
+      $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
+	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
+      print $data->{'EpisodeFilename'}."\n";
+   }
+   $sth->finish();
+   
+   $tvseries_dbh->disconnect();
    exit;
 }
 																										   

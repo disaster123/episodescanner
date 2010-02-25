@@ -87,6 +87,10 @@ our $thumbs = 0;
 our @thumb_dirs;
 our @thumb_fileext;
 our @thumb_progs;
+our $cleanup_recordings_tvseries = 0;
+our $cleanup_recordings_tvseries_db = '';
+our $cleanup_recordings_tvseries_db_mainpath = '';
+our $cleanup_recordings_tvseries_recordings_mainpath = '';
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); require "config.txt";');
@@ -309,6 +313,34 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
   }
   $abf_g->finish();  
 
+}
+
+########################################### Clean tvseriescleanup
+if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db) {
+  Log::log("Cleanup tvseriescleanup");
+
+   my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");
+   
+   my %tvseries_files;
+   my $sth = $tvseries_dbh->prepare("select * from local_episodes;");
+   $sth->execute();
+   while (my $data = $sth->fetchrow_hashref()) {
+      $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
+	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
+   }
+   $sth->finish();
+   $tvseries_dbh->disconnect();  
+  
+  my $abf_g = $dbh->prepare("SELECT * FROM recording;");
+  $abf_g->execute() or die $DBI::errstr;
+  while (my $aktrec = $abf_g->fetchrow_hashref()) {
+    $aktrec->{fileName} =~ s#^\Q$cleanup_recordings_tvseries_recordings_mainpath\E##i;
+	if (defined $tvseries_files{$aktrec->{fileName}}) {
+		print "$aktrec->{'fileName'} does also exist in tvseries -> delete DB Entry\n";
+		$dbh2->do("DELETE FROM recording WHERE idRecording = ?", undef, $aktrec->{'idRecording'});
+	}
+  }
+  $abf_g->finish();  
 }
 
 ########################################### Clean XML files...

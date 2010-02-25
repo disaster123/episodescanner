@@ -43,6 +43,12 @@ $db_backup_delete = 48; # delete backups older than
 $db_backup_sqlite_path = 'O:\DB\*.db3';
 $db_backup_sqlite_backuppath = 'O:\DB\backup';
 
+# remove recordings which are also listed at tvseries
+$cleanup_recordings_tvseries = 1; # on / off
+$cleanup_recordings_tvseries_db = 'O:\\DB\\TVSeriesDatabase4.db3';
+$cleanup_recordings_tvseries_db_mainpath = '\\\\192.168.178.100\\mp.data\\VID\\';
+$cleanup_recordings_tvseries_recordings_mainpath = 'O:\\VID\\';
+
 # delete recordings from the recordings DB of MP when the file does not exist
 $cleanup_recordingdb = 0; # on / off
 
