@@ -19,6 +19,7 @@ use Log;
 use DBM::Deep;
 use DBM::Deep::Hash;
 use DBM::Deep::Array;
+use Backend::EpisodeSubst;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
@@ -63,6 +64,8 @@ sub search() {
   my $self = shift;
   my $seriesname = shift;
   my $episodename = shift;
+  my $subst = shift;
+  my %subst = %{$subst};
   my $episodenumber = "";
   my $seasonnumber = "";
   my $hr;
@@ -125,7 +128,7 @@ sub search() {
       # Kessin: / BLABLUB: 
       $episodename =~ s#^[a-z]+\:\s+##i;
   }
-  my $episodename_search = $self->staffeltitle_to_regtest($episodename);
+  my $episodename_search = $self->staffeltitle_to_regtest($episodename, %subst);
   $episodename_search = encode($encoding, $episodename_search) if (defined $encoding && $encoding ne '');;
 
   # Rückwärts so kommen erst neuere
@@ -159,13 +162,14 @@ sub search() {
                $episodedata{'EpisodeName'} =~ s#^\w+\s+-\s+\d+\s+\-\s+##i;
              }
 
-             my $regtest = $self->staffeltitle_to_regtest($episodedata{'EpisodeName'});
+             my $regtest = $self->staffeltitle_to_regtest($episodedata{'EpisodeName'}, %subst);
              $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');
  
-             if (lc($episodename_search) eq lc($regtest)) {   # NEVER /o as option
+             if ($episodename_search eq $regtest) {   # NEVER /o as option
+               Log::log("direct found $episodename_search => $regtest => S$episodedata{'SeasonNumber'} E$episodedata{'EpisodeNumber'}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
                return ($episodedata{'SeasonNumber'}, $episodedata{'EpisodeNumber'});
 		     } else {
-               my $distance = distance(lc($episodename_search), lc($regtest));
+               my $distance = distance($episodename_search, $regtest);
                Log::log("\t-$episodename_search- =~ -$episodedata{'EpisodeName'}- =~ -$regtest- => ".$distance, 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 
                if ($distance < $fuzzy{distance}) {
@@ -193,10 +197,14 @@ sub search() {
 sub staffeltitle_to_regtest {
         my $self = shift;
         my $regtest = shift;
+		my %subst = @_;
+  
+        $regtest = &EpiseodeSubst($regtest, %subst);
   
         $regtest =~ s#\s+$##;
         $regtest =~ s#^\s+##;
-        $regtest =~ s#\s+\(\d+\)$##;
+		# Bad IDEA - it removes valid names
+        # $regtest =~ s#\s+\(\d+\)$##;
         $regtest =~ s#\.#\. #g;
         $regtest =~ s#\.# #g;
         $regtest =~ s#\-# #g;
@@ -206,7 +214,7 @@ sub staffeltitle_to_regtest {
         $regtest =~ s#$ss#ss#g;
         $regtest =~ s#\s+##g;
 
-return $regtest;
+return lc($regtest);
 }
 
 1;

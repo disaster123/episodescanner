@@ -17,6 +17,7 @@ use Encode::Symbol;
 use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
+use Backend::EpisodeSubst;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
@@ -34,6 +35,8 @@ sub search {
   my $self = shift;
   my $seriesname = shift;
   my $episodename = shift;
+  my $subst = shift;
+  my %subst = %{$subst};
   my $episodenumber = "";
   my $seasonnumber = "";
   my $id;
@@ -87,23 +90,23 @@ sub search {
   my %fuzzy = ();
   $fuzzy{distance} = 99;
   $fuzzy{maxdistance} = 2;
-  my $episodename_search = $self->staffeltitle_to_regtest($episodename);
+  my $episodename_search = $self->staffeltitle_to_regtest($episodename, %subst);
   foreach my $fs_title (sort keys %staffeln) {
-        my $regtest = $self->staffeltitle_to_regtest($fs_title);
+        my $regtest = $self->staffeltitle_to_regtest($fs_title, %subst);
 
 		if (!defined $staffeln{$fs_title}{S}) {
             Log::log("\tSkipping $regtest - no episode or series information at wunschliste", 0);
 			next;
         }
 		
-        $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');;
-        if (lc($episodename_search) eq lc($regtest)) {
+        $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');
+        if ($episodename_search eq $regtest) {
 	         Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 			 
 	         # found number so return
              return ($staffeln{$fs_title}{S}, $staffeln{$fs_title}{E});
         } else {
-             my $distance = distance(lc($episodename_search), lc($regtest));
+             my $distance = distance($episodename_search, $regtest);
              Log::log("\t-$episodename_search- =~ -$fs_title- =~ -$regtest- => ".$distance, 1);
 
              if ($distance < $fuzzy{distance}) {
@@ -150,10 +153,14 @@ return %r;
 sub staffeltitle_to_regtest {
         my $self = shift;
         my $regtest = shift;
+		my %subst = @_;
+  
+        $regtest = &EpiseodeSubst($regtest, %subst);
   
         $regtest =~ s#\s+$##;
         $regtest =~ s#^\s+##;
-        $regtest =~ s#\s+\(\d+\)$##;
+		# Bad IDEA - it removes valid names
+        # $regtest =~ s#\s+\(\d+\)$##;
         $regtest =~ s#\.#\. #g;
         $regtest =~ s#\.# #g;
         $regtest =~ s#\-# #g;
@@ -163,7 +170,7 @@ sub staffeltitle_to_regtest {
         $regtest =~ s#$ss#ss#g;
         $regtest =~ s#\s+##g;
 
-return $regtest;
+return lc($regtest);
 }
 
 sub _myget {

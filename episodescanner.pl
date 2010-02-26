@@ -91,6 +91,7 @@ our $cleanup_recordings_tvseries = 0;
 our $cleanup_recordings_tvseries_db = '';
 our $cleanup_recordings_tvseries_db_mainpath = '';
 our $cleanup_recordings_tvseries_recordings_mainpath = '';
+our %episode_stubstitutions;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
 eval('push(@INC, "."); require "config.txt";');
@@ -235,7 +236,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
         my ($episodenumber, $seasonnumber) = ("", "");
         if ($use_wunschliste) {
 		    eval {
-               ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
+               ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
 			};
 			if ($@) {
 			    Log::log("Wunschlist Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
@@ -244,7 +245,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
         }
 	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
 		    eval {
-	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
+	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
             };
 			if ($@) {
 			    Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
@@ -253,7 +254,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
         }
 	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
 		    eval {
-		       ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
+		       ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
 			};
 			if ($@) {
 			    Log::log("TheTVDB Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");

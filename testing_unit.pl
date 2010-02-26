@@ -86,6 +86,7 @@ our @mtn_options = ('-D 6 -B 420 -E 600 -c 1 -r 1 -s 300 -t -i -w 0 -n -P "$file
 our $cleanup_recordings_tvseries = 0;
 our $cleanup_recordings_tvseries_db = '';
 our $cleanup_recordings_tvseries_db_mainpath = '';
+our %episode_stubstitutions;
 
 Log::start(1);
 
@@ -144,17 +145,17 @@ my ($episodenumber, $seasonnumber) = ("", "");
 	      
 if ($ARGV[0] eq "wunschliste") {
    Log::log("Start wunschliste");
-   ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename);	      
+   ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
 } elsif ($ARGV[0] eq "fernsehserien") {
    Log::log("Start fernsehserien");
-  ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename);
+  ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
 } elsif ($ARGV[0] eq "thetvdb") {
    Log::log("Start: thetvdb");
-  ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename);
+  ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
 } else {
   Log::log("Do not know Engine $ARGV[0]");
 }
-	      
+print "S$seasonnumber, E$episodenumber\n";
 Log::log("END\n");
 
 ## END

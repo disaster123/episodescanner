@@ -36,6 +36,25 @@ $use_tv_tb = 1;
 $tvdb_apikey = '';
 $thetvdb_language = 'de'; # language for thetvdb 2 Character ISO Code like (de, en, nl, dk, ...)
 
+# episodename substitutions
+# here you can define substitiutions for your episodenames
+# f.e. "1" to "one"
+# f.e. "part1" to "one"
+# this avoids problems with different namings
+# you can use regex on the left side here if you want
+%episode_stubstitutions = (
+	'Teil\s+\(1\)' => '(1)',
+	'Teil\s+\(2\)' => '(2)',
+	'Teil\s+\(3\)' => '(3)',
+	'Teil\s+\(4\)' => '(4)',
+	'Teil\s+1' => '(1)',
+	'Teil\s+2' => '(2)',
+	'Teil\s+3' => '(3)',
+	'Teil\s+4' => '(4)',
+	' & ' => ' und ',
+	' and ' => ' und ',
+);
+
 # database backup every X hours
 $db_backup = 1; # on/off
 $db_backup_interval = 2; # in hours

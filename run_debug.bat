@@ -6,6 +6,8 @@ mkdir tmp
 echo deleting old Logfiles...
 del /S /Q log.*.txt > nul 2> nul
 del /S /Q log.txt > nul 2> nul
+echo deleting html debug pages...
+del /S /Q *.htm > nul 2> nul
 
 episodescanner.exe -debug
 
