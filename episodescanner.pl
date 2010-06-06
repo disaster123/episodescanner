@@ -544,7 +544,7 @@ sub checkdir($$) {
 		my $my_vid_found = 0;
 		# check for relevant vid
 		foreach my $ext (@cleanup_recordingdir_ext) {
-		  if (-e "$dir\\$f_name.$ext") {
+		  if (-e "$dir\\$f_name$ext") {
 			$my_vid_found = 1;
 			last;
 	      }
