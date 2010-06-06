@@ -55,7 +55,7 @@ $thetvdb_language = 'de'; # language for thetvdb 2 Character ISO Code like (de, 
 	' and ' => ' und ',
 );
 
-# database backup every X hours
+# SQLite database backup every X hours (NOT MSSQL or MySQL)
 $db_backup = 1; # on/off
 $db_backup_interval = 2; # in hours
 $db_backup_delete = 48; # delete backups older than
@@ -73,6 +73,8 @@ $cleanup_recordingdb = 0; # on / off
 
 # delete empty folders and deletes .xml, .txt, .logo, .jpg files (if the .ts file is removed) in recordingdir
 $cleanup_recordingfiles = 0;
+# video file extensions
+@cleanup_recordingdir_ext = ('.ts', '.avi', '.mkv');
 # folder where the recordings are stored
 $cleanup_recordingdir = 'O:\VID';
 
@@ -97,7 +99,7 @@ $thumbs = 0;
                   },
                   {
                    # internal MTN variant 2
-                   prog => 'mtn\\mtn.exe -D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "${filename}"',
+                   prog => 'mtn2\\mtn.exe -D 8 -B   0 -E   0 -c 1 -r 1 -s  60 -t -i -w 0 -n -P "${filename}"',
                    thumb_filename => '${basedir}\\${basefile}_s.jpg',
                    timeout => 10,
                   }

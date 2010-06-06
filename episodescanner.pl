@@ -71,6 +71,7 @@ our $use_fernsehserien;
 our $use_wunschliste;
 our $cleanup_recordingdb;
 our $cleanup_recordingfiles;
+our @cleanup_recordingdir_ext = ('.ts', '.avi', '.mkv');
 our $usemysql;
 our $dbh;
 our $dbh2;
@@ -511,7 +512,7 @@ sub _rm_dir {
 sub checkdir($$) {
   my $dir = shift;
   my $tiefe = shift;
-  my $ts_found = 0;
+  my $vid_found = 0;
 
   Log::log("Check dir $dir", 1);
 
@@ -522,28 +523,43 @@ sub checkdir($$) {
   
   foreach my $f (@files) {
   	next if ($f eq "." || $f eq "..");
-  	if ($f =~ /\.ts$/i || $f =~ /\.avi$/i || $f =~ /\.mkv$/i) {
-	   $ts_found = 1;
+	foreach my $ext (@cleanup_recordingdir_ext) {
+  	  if ($f =~ /\Q$ext\E$/i) {
+	    $vid_found = 1;
+		last;
+	  }
 	}
+	last if ($vid_found == 1);
+  }
+
+  foreach my $f (@files) {
+  	next if ($f eq "." || $f eq "..");
   	if (-d "$dir\\$f") {
 		&checkdir("$dir\\$f", $tiefe+1);
-	} elsif (-e "$dir\\$f" && $f =~ /^(.*?)\.log$/ && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 30 minuten
+	} elsif (-e "$dir\\$f" && $f =~ /\.log$/i && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 30 minuten
             Log::log("Delete $f in $dir");
 			unlink("$dir\\$f");
 	} elsif (-e "$dir\\$f" && $f =~ /^(.*?)\.(logo\.txt|xml|txt|log|edl|jpg)$/) {
 		my $f_name = $1;
-		if ((!-e "$dir\\$f_name.ts") && (!-e "$dir\\$f_name.avi")) {
+		my $my_vid_found = 0;
+		# check for relevant vid
+		foreach my $ext (@cleanup_recordingdir_ext) {
+		  if (-e "$dir\\$f_name.$ext") {
+			$my_vid_found = 1;
+			last;
+	      }
+		}
+		if ($my_vid_found == 0) {
             Log::log("Delete $f in $dir");
 			unlink("$dir\\$f");
 		}
 	}
   }
   
-  if ($ts_found == 0 && $tiefe > 1) {
+  if ($vid_found == 0 && $tiefe > 1) {
 	  print "Delete DIR $dir\n";
 	  &_rm_dir($dir);
   }
-
 }
 
 sub thumb_checkdir($$$) {
