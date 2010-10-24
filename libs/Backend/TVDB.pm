@@ -78,7 +78,7 @@ sub search() {
     $hr = $self->{tvdb}->getPossibleSeriesId($seriesname, [0]);
   };
   Log::log("\tError: $@", 0) if ($@);
-  # Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+  Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
   utf8::decode($seriesname);
 
   # sortiere aufsteigend - damit wir uns die neueste verfügbare ID holen (ACHTUNG Rückwärts siehe unten)
@@ -98,7 +98,7 @@ sub search() {
 	   my $t = $hr->{$posserie}->{'SeriesName'};
 	   $t =~ s#[^a-z0-9]##ig;
 	   next if ($hr->{$posserie}->{'language'} ne $self->{language});
-	   next if ($t ne $test_seriesname);
+	   next if (lc($t) ne lc($test_seriesname));
 	   $seriesid = $hr->{$posserie}->{'seriesid'};
 	   last;
   }
