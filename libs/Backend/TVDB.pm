@@ -33,18 +33,6 @@ sub new {
 	my $thetvdb_language = shift || 'en';
     my $self = {};
 
-	$self->{language} = $thetvdb_language;
-
-    $self->{tvdb} = TVDB::API::new(
-	                    {
-	                       apikey    => $apikey,
-                           lang      => $thetvdb_language,
-                           cache     => 'tmp/'.$progbasename.'_tvdb.cache',
-                           banner    => 'tmp',
-                           useragent => "TVDB::API/$TVDB::API::VERSION"
-                        });
-    $self->{cache} = ();
-
     # delete Cache if it is older than 2 days
     if (-e 'tmp/'.$progbasename.'.cache') {
         # in Tagen
@@ -54,7 +42,21 @@ sub new {
           # delete TVDB Cache every 2 days
           unlink('tmp/'.$progbasename.'.cache');
         }
-    }
+    }	
+	
+	@{$self->{language}} = split(/\|/, $thetvdb_language);
+
+	foreach my $lang (@{$self->{language}}) {
+      $self->{tvdb}->{$lang} = TVDB::API::new(
+	                    {
+	                       apikey    => $apikey,
+                           lang      => $lang,
+                           cache     => 'tmp/'.$progbasename.'_tvdb.cache',
+                           banner    => 'tmp',
+                           useragent => "TVDB::API/$TVDB::API::VERSION"
+                        });
+	}
+    $self->{cache} = ();
 
   return bless $self, $type;
 }
@@ -66,16 +68,25 @@ sub search() {
   my $episodename = shift;
   my $subst = shift;
   my %subst = %{$subst};
+  my $lang = shift;
   my $episodenumber = "";
   my $seasonnumber = "";
   my $hr;
   my $seriesid = 0;
 
-  Log::log("\tsearch on http://www.thetvdb.com/ Language: ".$self->{language}."...");
+  if (!defined $lang) {
+    foreach my $l (@{$self->{language}}) {
+       my ($e, $s) = $self->search($seriesname, $episodename, \%subst, $l);
+	   return ($e, $s) if ($e && $s && $e > 0 && $s > 0);
+	}
+	return (0, 0);
+  }  
+  
+  Log::log("\tsearch on http://www.thetvdb.com/ Language: ".$lang."...");
 
   utf8::encode($seriesname);
   eval {
-    $hr = $self->{tvdb}->getPossibleSeriesId($seriesname, [0]);
+    $hr = $self->{tvdb}->{$lang}->getPossibleSeriesId($seriesname, [0]);
   };
   Log::log("\tError: $@", 0) if ($@);
   Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
@@ -97,7 +108,7 @@ sub search() {
 	   # remove from series all special characters
 	   my $t = $hr->{$posserie}->{'SeriesName'};
 	   $t =~ s#[^a-z0-9]##ig;
-	   next if ($hr->{$posserie}->{'language'} ne $self->{language});
+	   next if ($hr->{$posserie}->{'language'} ne $lang);
 	   next if (lc($t) ne lc($test_seriesname));
 	   $seriesid = $hr->{$posserie}->{'seriesid'};
 	   last;
@@ -108,22 +119,23 @@ sub search() {
       return (0, 0);
   }
 
-  if (!defined $self->{cache}{getSeriesAll}{$seriesid}) {
+  if (!defined $self->{cache}->{$lang}->{getSeriesAll}{$seriesid}) {
     ##############print "getSeriesAll Not in Cache\n";
     eval {
-      $hr = $self->{tvdb}->getSeriesAll($seriesid, [0]);
+      $hr = $self->{tvdb}->{$lang}->getSeriesAll($seriesid, [0]);
     };
     Log::log("\tError: $@", 0) if ($@);
-    $self->{cache}{getSeriesAll}{$seriesid} = $hr;
+    $self->{cache}->{$lang}->{getSeriesAll}{$seriesid} = $hr;
   } else {
     ##############print "getSeriesAll In Cache\n";
-    $hr = $self->{cache}{getSeriesAll}{$seriesid};
+    $hr = $self->{cache}->{$lang}->{getSeriesAll}{$seriesid};
   }
 					
   my %fuzzy = ();
   $fuzzy{distance} = 99;
   $fuzzy{maxdistance} = 2;
 
+  # Tatort Hack - can be implemented by local substitutions  
   if ($seriesname eq "Tatort") {
       # Kessin: / BLABLUB: 
       $episodename =~ s#^[a-z]+\:\s+##i;
@@ -143,14 +155,14 @@ sub search() {
 		     my $episodedata;
 		     my %episodedata;
 
-		     if (!defined $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]}) {
+		     if (!defined $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]}) {
                  eval {
-                   $episodedata = $self->{tvdb}->getEpisodeId($episodes[$episodenr-1]);
+                   $episodedata = $self->{tvdb}->{$lang}->getEpisodeId($episodes[$episodenr-1]);
                  };
                  Log::log("\tError: $@", 0) if ($@);
-			     $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]} = $episodedata;
+			     $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]} = $episodedata;
             } else {
-                 $episodedata = $self->{cache}{getEpisodeId}{$episodes[$episodenr-1]};
+                 $episodedata = $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]};
             }
              %episodedata = %{$episodedata};
              next if (!defined $episodedata{'EpisodeName'});

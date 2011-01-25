@@ -2,7 +2,7 @@
 # rename me to config.txt
 
 # 0 is MSSQL | 1 is mysql
-$usemysql = 0;
+$usemysql = 1;
 
 # optimize mysql tables every X hours (0 for disabling)
 $optimizemysqltables = 2;
@@ -34,7 +34,8 @@ $use_tv_tb = 1;
 # if you leave this field blank it would use a global API key
 # so this is optional
 $tvdb_apikey = '';
-$thetvdb_language = 'de'; # language for thetvdb 2 Character ISO Code like (de, en, nl, dk, ...)
+# you can also use multiple languages by splitting the iso codes with a |
+$thetvdb_language = 'de|en';
 
 # episodename substitutions
 # here you can define substitiutions for your episodenames
