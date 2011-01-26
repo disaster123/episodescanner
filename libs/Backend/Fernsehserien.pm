@@ -45,29 +45,36 @@ sub search {
 
   # test if it is directly a result page
   if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenführer/i) {
-  } else {
-        # Try to get all Series
-        #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>
-        my $t = $seriesname;
-        if ($page =~ m#<a href="([^"]+)">(<b>)*$t(</b>)*#i) {
-           my $uri = $1;
-	   Log::log("Found page $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-	   my %par = ();
-           if ($uri =~ m#\?(.*)$#i) {
-	       foreach my $l (split(/&/, $1)) {
-	          my ($name, $value) = split(/=/, $l, 2);
-	          $par{$name} = $value;
-	       }
-	       $uri =~ s#\?.*$##;
+	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
+		   my $FH;
+		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
+		   print $FH $page;
+		   close($FH);
+           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1);
 	   }
-	   $page = _myget("http://www.fernsehserien.de/".$uri, %par);
+  } else {
+    # Try to get all Series
+    #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>
+    my $t = $seriesname;
+    if ($page =~ m#<a href="([^"]+)">(<b>)*$t(</b>)*#i) {
+      my $uri = $1;
+      Log::log("Found page $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+      my %par = ();
+      if ($uri =~ m#\?(.*)$#i) {
+	    foreach my $l (split(/&/, $1)) {
+	      my ($name, $value) = split(/=/, $l, 2);
+	      $par{$name} = $value;
+	    }
+	    $uri =~ s#\?.*$##;
+	  }
+	  $page = _myget("http://www.fernsehserien.de/".$uri, %par);
 	} else {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
 		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
 		   close($FH);
-           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1)
+           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1);
 	   }
 	   
        Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Fernsehserien");
@@ -145,32 +152,33 @@ sub get_staffel_hash {
    my $start = 0;
    my $aktseries_in_staffel = 0;
    foreach my $line (split(/\n/, $p)) {
-   	if ($line =~ /bisher\s+\d+\s+(Episoden|Folgen)/i) {
+   
+   	 if ($line =~ /^\s*bisher\s+\d+\s+(Episoden|Folgen)/i) {
 		# print "Start found == 1\n";
    		$start = 1;
    		next;
-   	}
+   	 }
 
-   	if ($start == 0 && $line =~ /(\d+)\. Staffel/i) {
+   	 if ($start == 0 && ($line =~ /^\s*(\d+)\. Staffel/i || $line =~ /^\s*Staffel (\d+)/i)) {
 		# print "Start found == 1\n";
    		$start = 1;
-   	}
+   	 }
 
-   	next if ($start == 0);
-   	next if ($line !~ /\d+\./);
+   	 next if ($start == 0);
+   	 next if ($line !~ /^\s*\d+\./ && $line !~ /\d+$/);
    	
-   	if ($line =~ /(\d+)\. Staffel/i) {
+   	 if ($line =~ /^\s*(\d+)\. Staffel/i|| $line =~ /^\s*Staffel (\d+)$/i) {
 		$aktstaffel = $1;
 		$aktseries_in_staffel = 0;
    		next;
-   	}
-   	next if (!defined $aktstaffel);
-   	if ($line =~ /(\d+)\. (.*)$/i) {
-   	        $aktstaffel = 1 if ($aktstaffel == 0);
-   		$r{$2}{E} = ++$aktseries_in_staffel;
-   		$r{$2}{S} = $aktstaffel;
-   		next;
-   	}
+   	 }
+   	 next if (!defined $aktstaffel);
+   	 if ($line =~ /(\d+)\. (.*)$/i) {
+   	   $aktstaffel = 1 if ($aktstaffel == 0);
+   	   $r{$2}{E} = ++$aktseries_in_staffel;
+   	   $r{$2}{S} = $aktstaffel;
+   	   next;
+   	 }
    	
    }
    

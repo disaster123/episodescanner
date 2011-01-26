@@ -138,7 +138,7 @@ $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
 my $seriesname = $ARGV[1];
 my $episodename = $ARGV[2];
 
-Log::log("\n\tEpisode: $episodename") if (defined );
+Log::log("\n\tEpisode: $episodename");
 
 # start a new search on fernsehserien.de
 my ($episodenumber, $seasonnumber) = ("", "");

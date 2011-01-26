@@ -177,7 +177,7 @@ sub search() {
              my $regtest = $self->staffeltitle_to_regtest($episodedata{'EpisodeName'}, %subst);
              $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');
  
-             if ($episodename_search eq $regtest) {   # NEVER /o as option
+             if ($episodename_search eq $regtest) {
                Log::log("direct found $episodename_search => $regtest => S$episodedata{'SeasonNumber'} E$episodedata{'EpisodeNumber'}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
                return ($episodedata{'SeasonNumber'}, $episodedata{'EpisodeNumber'});
 		     } else {
@@ -199,7 +199,7 @@ sub search() {
        $episodenumber = $fuzzy{episodenumber};
        $seasonnumber = $fuzzy{seasonnumber};
        Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}", 1);
-   } else {
+   } elsif ($episodenumber eq "" and $seasonnumber eq "") {
        Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 1);
    }
 
