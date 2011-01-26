@@ -233,7 +233,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
 		    next;		
         }
 
-        # start a new search on fernsehserien.de
         my ($episodenumber, $seasonnumber) = ("", "");
         if ($use_wunschliste) {
 		    eval {
@@ -241,15 +240,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
 			};
 			if ($@) {
 			    Log::log("Wunschlist Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
-				Log::log($@, 1);
-			}
-        }
-	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-		    eval {
-	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
-            };
-			if ($@) {
-			    Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
 				Log::log($@, 1);
 			}
         }
@@ -262,6 +252,15 @@ foreach my $tv_serie (sort keys %tvserien)  {
 				Log::log($@, 1);
 			}
 	    }
+	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
+		    eval {
+	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
+            };
+			if ($@) {
+			    Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+				Log::log($@, 1);
+			}
+        }
 	      
 	    if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = $seasonnumber;
