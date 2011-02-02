@@ -1,20 +1,27 @@
 #!/usr/bin/perl
 
+$| = 1;
+
 BEGIN {
-  $| = 1;
-  
   $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
   my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
   $program_dir ||= ".";
   chdir($program_dir);
+  
+  if (defined $ENV{'PAR_0'}) {
+#   debug to see packed content
+#   print "$ENV{'PAR_0'}\n";
+#   sleep(300);
+  }
 }
 
 use lib 'lib';
 use lib 'libs';
 use lib '.';
-use Carp;
-$SIG{__WARN__} = \&Carp::cluck;
-$SIG{__DIE__} = \&Carp::confess;
+# hey skip on pp
+if (!defined $ENV{'PAR_0'}) {
+  eval("use Carp;\$SIG{__WARN__} = \\&Carp::cluck;\$SIG{__DIE__} = \\&Carp::confess;");
+}
 use warnings;
 use strict;
 use thumbs;
