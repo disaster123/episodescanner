@@ -14,7 +14,8 @@ xcopy ..\libs build\libs /EXCLUDE:No.SVN.txt /A /S /I /E /Q /Y
 
 cd build
 REM -c is not possible with Crypto
-cmd /C pp -C -I libs -f PodStrip -F PodStrip -M PAR::Filter::PodStrip -f Crypto -F Crypto -M Filter::Crypto::Decrypt -X Carp -X DBD::SQLite -X DBD::CSV -X DBD::File -X DBD::Excel -o episodescanner.exe episodescanner.pl
+REM -C  DO clean Cache libs and files
+cmd /C pp -v -I libs -f PodStrip -F PodStrip -M PAR::Filter::PodStrip -f Crypto -F Crypto -M Filter::Crypto::Decrypt -X Carp -X DBD::SQLite -X DBD::CSV -X DBD::File -X DBD::Excel -o episodescanner.exe episodescanner.pl
 cd ..
 
 xcopy ..\*.dll build
