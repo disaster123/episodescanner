@@ -9,7 +9,7 @@ if not "%ProgramFiles(x86)%".=="". set progpath=%ProgramFiles(x86)%
 
 echo ".svn" >No.SVN.txt
 
-xcopy ..\episodescanner.pl build\episodescanner
+copy ..\episodescanner.pl build\episodescanner
 xcopy ..\libs build\libs /EXCLUDE:No.SVN.txt /A /S /I /E /Q /Y
 
 cd build
