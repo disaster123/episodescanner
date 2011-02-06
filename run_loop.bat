@@ -1,7 +1,3 @@
 @echo off
 
-:loop
-
-episodescanner.exe
-
-goto loop
+episodescanner.exe -loop

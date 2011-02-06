@@ -24,8 +24,9 @@ if (!defined $ENV{'PAR_0'}) {
 }
 use warnings;
 use strict;
-use thumbs;
+use Config::General;
 use Log;
+use thumbs;
 use Backend::Wunschliste;
 use Backend::Fernsehserien;
 use Backend::TVDB;
@@ -57,6 +58,13 @@ if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(),
 our $progbasename = &basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
 $ENV{DEBUG} = $DEBUG;
+
+#new episodescanner
+#my $conf = new Config::General(-ConfigFile => "episodescanner.settings", -ForceArray => 1, -AutoTrue => 1 );
+#my %config = $conf->getall;
+#print Dumper(\%config);
+#exit;
+
 our $tvdb_apikey;
 our $cleanup_recordingdir;
 our $dbuser;
@@ -118,6 +126,8 @@ our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
 Log::log("got Win32 Codepage: ".$w32encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 our $encoding = ($w32encoding ? resolve_alias($w32encoding) : '')  || '';
 Log::log("got resolved alias: ".$encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+
+LOOPSTART:
 
 if ($usemysql) {
   Log::log("using MySQL", 0);
@@ -356,7 +366,7 @@ if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db) {
 }
 
 ########################################### Clean XML files...
-if ($cleanup_recordingfiles && -d $cleanup_recordingdir) {
+if ($cleanup_recordingfiles && -d $cleanup_recordingdir && scalar(@cleanup_recordingdir_ext) > 0) {
    print "\nCleanup XML and other Files\n";
    
    &checkdir($cleanup_recordingdir, 1);
@@ -478,6 +488,10 @@ Log::log("\nEND\n");
 
 sleep($sleep);
 
+if (defined $ARGV[0] && $ARGV[0] eq "-loop") {
+   goto LOOPSTART;
+}
+
 ## END
 exit;
 
@@ -518,7 +532,7 @@ sub _rm_dir {
 sub checkdir($$) {
   my $dir = shift;
   my $tiefe = shift;
-  my $vid_found = 0;
+  my @vids;
 
   Log::log("Check dir $dir", 1);
 
@@ -527,42 +541,30 @@ sub checkdir($$) {
   my @files = readdir($DIRH);
   closedir($DIRH);
   
-  foreach my $f (@files) {
-  	next if ($f eq "." || $f eq "..");
-	foreach my $ext (@cleanup_recordingdir_ext) {
-  	  if ($f =~ /\Q$ext\E$/i) {
-	    $vid_found = 1;
-		last;
-	  }
-	}
-	last if ($vid_found == 1);
+  foreach my $ext (@cleanup_recordingdir_ext) {
+    push(@vids, grep(/\Q$ext\E$/, @files));
   }
 
   foreach my $f (@files) {
   	next if ($f eq "." || $f eq "..");
-  	if (-d "$dir\\$f") {
-		&checkdir("$dir\\$f", $tiefe+1);
-	} elsif (-e "$dir\\$f" && $f =~ /\.log$/i && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 30 minuten
-            Log::log("Delete $f in $dir");
-			unlink("$dir\\$f");
-	} elsif (-e "$dir\\$f" && $f =~ /^(.*?)\.(logo\.txt|xml|txt|log|edl|jpg)$/) {
-		my $f_name = $1;
-		my $my_vid_found = 0;
-		# check for relevant vid
-		foreach my $ext (@cleanup_recordingdir_ext) {
-		  if (-e "$dir\\$f_name$ext") {
-			$my_vid_found = 1;
-			last;
-	      }
-		}
-		if ($my_vid_found == 0) {
-            Log::log("Delete $f in $dir");
-			unlink("$dir\\$f");
-		}
+	
+	if ($f =~ /^(.*?)\.([^\.]+)$/) {
+      my $f_name = $1;
+	  my $f_ext = $2;
+	
+      if (-d "$dir\\$f") {
+        &checkdir("$dir\\$f", $tiefe+1);
+      } elsif (-f "$dir\\$f" && $f_ext eq "log" && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 180 minuten
+        Log::log("Delete Logfile $f in $dir");
+        unlink("$dir\\$f");
+	  } elsif (-f "$dir\\$f" && !grep(/^$f_name\.[^\.]+$/, @vids)) {
+        Log::log("Delete $f in $dir");
+        unlink("$dir\\$f");
+	  }
 	}
   }
   
-  if ($vid_found == 0 && $tiefe > 1) {
+  if (scalar(@vids) == 0 && $tiefe > 1) {
 	  print "Delete DIR $dir\n";
 	  &_rm_dir($dir);
   }
