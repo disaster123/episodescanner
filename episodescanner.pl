@@ -198,7 +198,7 @@ if ($use_tv_tb) {
 # Go through all TV Series
 foreach my $tv_serie (sort keys %tvserien)  {
  	# sleep so that there are not too much cpu seconds and speed keeps slow
-	sleep(2);
+	#sleep(2);
 	Log::log("\nSerie: $tv_serie");
 
 	RESCAN:
@@ -532,7 +532,7 @@ sub _rm_dir {
 sub checkdir($$) {
   my $dir = shift;
   my $tiefe = shift;
-  my @vids;
+  my @vids = ();
 
   Log::log("Check dir $dir", 1);
 
@@ -544,20 +544,22 @@ sub checkdir($$) {
   foreach my $ext (@cleanup_recordingdir_ext) {
     push(@vids, grep(/\Q$ext\E$/, @files));
   }
+  #print "Found vids ", join(",", @vids), " in dir $dir\n";
 
   foreach my $f (@files) {
   	next if ($f eq "." || $f eq "..");
-	
-	if ($f =~ /^(.*?)\.([^\.]+)$/) {
+
+    if (-d "$dir\\$f") {
+      &checkdir("$dir\\$f", $tiefe+1);
+
+	} elsif (-f "$dir\\$f" && $f =~ /^(.*?)\.([^\.]+)$/) {
       my $f_name = $1;
-	  my $f_ext = $2;
+	  my $f_ext = ".".$2;
 	
-      if (-d "$dir\\$f") {
-        &checkdir("$dir\\$f", $tiefe+1);
-      } elsif (-f "$dir\\$f" && $f_ext eq "log" && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 180 minuten
+      if (-f "$dir\\$f" && $f_ext eq ".log" && (int((time() - (stat("$dir\\$f"))[10])/60)) > 180) { # erstellt vor 180 minuten
         Log::log("Delete Logfile $f in $dir");
         unlink("$dir\\$f");
-	  } elsif (-f "$dir\\$f" && !grep(/^$f_name\.[^\.]+$/, @vids)) {
+	  } elsif (-f "$dir\\$f" && !grep(/^\Q$f_name\E\.[^\.]+$/, @vids) && !grep( {$_ eq $f_ext} @cleanup_recordingdir_ext)) {
         Log::log("Delete $f in $dir");
         unlink("$dir\\$f");
 	  }
