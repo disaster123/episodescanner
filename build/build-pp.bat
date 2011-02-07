@@ -16,7 +16,11 @@ cd build
 REM -c is not possible with Crypto
 REM -C  DO clean Cache libs and files
 REM Archive::Unzip::Burst
-cmd /C pp -v  -I libs -f PodStrip -F PodStrip -M PAR::Filter::PodStrip -f Crypto -F Crypto -M Filter::Crypto::Decrypt -X Carp -X DBD::SQLite -X DBD::CSV -X DBD::File -X DBD::Excel -o episodescanner.exe episodescanner
+del modcache
+cmd /C pp -v -c -cd modcache -I libs --X Carp -X DBD::CSV -X DBD::File -X DBD::Excel -o episodescanner.exe episodescanner
+del episodescanner.exe
+cmd /C pp -v    -cd modcache -I libs -M XML::LibXML::SAX -f PodStrip -F PodStrip -M PAR::Filter::PodStrip -f Crypto -F Crypto -M Filter::Crypto::Decrypt -X Carp -X DBD::CSV -X DBD::File -X DBD::Excel -o episodescanner.exe episodescanner
+del modcache
 cd ..
 
 xcopy ..\*.dll build

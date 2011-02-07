@@ -256,7 +256,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
                ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
 			};
 			if ($@) {
-			    Log::log("Wunschlist Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+			    Log::log("Wunschliste Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
 				Log::log($@, 1);
 			}
         }
