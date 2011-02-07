@@ -7,19 +7,16 @@ BEGIN {
   my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
   $program_dir ||= ".";
   chdir($program_dir);
-  
-  if (defined $ENV{'PAR_0'}) {
-#   debug to see packed content
-#   print "$ENV{'PAR_0'}\n";
-#   sleep(300);
-  }
 }
 
 use lib 'lib';
 use lib 'libs';
 use lib '.';
-# hey skip on pp
-if (!defined $ENV{'PAR_0'}) {
+#perl2exe_include Tie::Hash::NamedCapture
+#perl2exe_include Errno
+
+# hey skip on perl2exe
+if ($^X =~ /(perl)|(perl\.exe)$/i) {
   eval("use Carp;\$SIG{__WARN__} = \\&Carp::cluck;\$SIG{__DIE__} = \\&Carp::confess;");
 }
 use warnings;
