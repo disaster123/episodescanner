@@ -34,6 +34,7 @@ use Encode::Byte;
 use DBI;
 use DBD::ODBC;
 use DBD::mysql;
+use DBD::SQLite;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);
 use URI::Escape;
