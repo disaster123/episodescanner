@@ -15,7 +15,7 @@ xcopy ..\libs build\libs /EXCLUDE:No.SVN.txt /A /S /I /E /Q /Y
 cd build
 perl2exe -tiny -I=C:\strawberry/perl/vendor/lib episodescanner
 mkdir lib
-mv *.dll lib
+move *.dll lib
 copy C:\strawberry\perl\c\bin\libgcc_s_sjlj-1.dll lib
 copy C:\strawberry\perl\c\bin\libmysql_.dll lib
 cd ..
