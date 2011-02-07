@@ -52,7 +52,7 @@ sub processfile {
 
 	   if (!-e $cmd) {
           Log::log("Command \"$cmd\" not found!");
-		  next:
+		  next;
 	   }
 	   my $mtn_obj;
        Log::log("Run: ".Dumper($prog_h)) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);

@@ -13,11 +13,12 @@ copy ..\episodescanner.pl build\episodescanner
 xcopy ..\libs build\libs /EXCLUDE:No.SVN.txt /A /S /I /E /Q /Y
 
 cd build
-perl2exe -tiny -I=C:\strawberry/perl/vendor/lib episodescanner
+"%progpath%\p2x\perl2exe" -tiny -I=C:\strawberry/perl/vendor/lib episodescanner
 mkdir lib
 move *.dll lib
-copy C:\strawberry\perl\c\bin\libgcc_s_sjlj-1.dll lib
-copy C:\strawberry\perl\c\bin\libmysql_.dll lib
+copy C:\strawberry\c\bin\libgcc_s_sjlj-1.dll lib
+copy C:\strawberry\c\bin\libmysql_.dll lib
+move lib\p2x5101.dll .
 cd ..
 
 xcopy ..\*.dll build
