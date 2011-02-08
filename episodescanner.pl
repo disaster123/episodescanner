@@ -6,13 +6,16 @@ BEGIN {
   $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
   my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
   $program_dir ||= ".";
+  if ($program_dir =~ m#^(.*)bin[\\/]{0,1}$#) {
+    $program_dir = $1;
+  }
   chdir($program_dir);
+  $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
 }
 
 use lib 'lib';
 use lib 'libs';
 use lib '.';
-
 
 # hey skip on cava
 if ($^X =~ /(perl)|(perl\.exe)$/i) {
@@ -33,7 +36,6 @@ use Encode::Byte;
 use DBI;
 use DBD::ODBC;
 use DBD::mysql;
-use Carp::Heavy;
 use DBD::SQLite;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);
@@ -42,6 +44,7 @@ use LWP::Simple;
 use LWP::UserAgent;
 use URI;
 use XML::Simple;
+use XML::Parser;
 use HTML::Entities;
 use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
 
@@ -186,6 +189,11 @@ if ($use_tv_tb) {
   eval {
      $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
   };
+  if ($@) {
+    Log::log("TheTVDB Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+	Log::log($@, 1);
+	exit;
+  }
   if (!defined $b_tvdb) {
      $use_tv_tb = 0;
   }
@@ -665,9 +673,9 @@ sub basename {
    my $dir = shift;
    my $type = shift || "";
 
-   $type = quotemeta($type);
    $dir =~ s#^.*\\##;
-   $dir =~ s#$type$##i if ($type ne "");
-
+   $dir =~ s#^.*/##; # unix / cava style
+   $dir =~ s#\Q$type\E$##i if ($type ne "");
+   
 return $dir;
 }

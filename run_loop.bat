@@ -1,3 +1,3 @@
 @echo off
 
-episodescanner.exe -loop
+bin\episodescanner.exe -loop

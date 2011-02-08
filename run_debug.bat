@@ -9,7 +9,7 @@ del /S /Q log.txt > nul 2> nul
 echo deleting html debug pages...
 del /S /Q *.htm > nul 2> nul
 
-episodescanner.exe -debug
+bin\episodescanner.exe -debug
 
 echo now please upload your log.txt to the forum and describe your problem
 

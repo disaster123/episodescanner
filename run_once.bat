@@ -1,3 +1,3 @@
 @echo off
 
-episodescanner.exe
+bin\episodescanner.exe

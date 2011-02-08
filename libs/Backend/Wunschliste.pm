@@ -7,6 +7,7 @@ use URI;
 use URI::URL;
 use URI::Escape;
 use XML::Simple;
+use XML::Parser;
 use Data::Dumper;
 use Win32::Codepage;
 use Encode qw(encode decode);
@@ -18,6 +19,10 @@ use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
+
+BEGIN {
+  $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
+}
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';

@@ -3,6 +3,7 @@
 rmdir /S /Q episodescanner
 rmdir /S /Q installer
 rmdir /S /Q release
+rmdir /S /Q project\testbuild
 
 set progpath=%ProgramFiles%
 if not "%ProgramFiles(x86)%".=="". set progpath=%ProgramFiles(x86)%
@@ -24,5 +25,6 @@ del No.SVN.txt
 move release episodescanner
 
 rmdir /S /Q installer
+rmdir /S /Q project\testbuild
 
 pause

@@ -19,6 +19,8 @@ use Log;
 use DBM::Deep;
 use DBM::Deep::Hash;
 use DBM::Deep::Array;
+use DBM::Deep::Engine::File;
+use DBM::Deep::Iterator::File;
 use Backend::EpisodeSubst;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
