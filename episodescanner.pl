@@ -14,7 +14,7 @@ use lib 'libs';
 use lib '.';
 
 
-# hey skip on perl2exe
+# hey skip on cava
 if ($^X =~ /(perl)|(perl\.exe)$/i) {
   eval("use Carp;\$SIG{__WARN__} = \\&Carp::cluck;\$SIG{__DIE__} = \\&Carp::confess;");
 }

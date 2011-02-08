@@ -44,7 +44,11 @@ sub new {
         }
     }	
 	
-	@{$self->{language}} = split(/\|/, $thetvdb_language);
+	if ($thetvdb_language =~ /\|/) {
+      @{$self->{language}} = split(/\|/, $thetvdb_language);
+    } else {
+      push(@{$self->{language}}, $thetvdb_language);
+	}
 
 	foreach my $lang (@{$self->{language}}) {
       $self->{tvdb}->{$lang} = TVDB::API::new(
