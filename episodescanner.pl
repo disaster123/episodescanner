@@ -12,8 +12,7 @@ BEGIN {
 use lib 'lib';
 use lib 'libs';
 use lib '.';
-#perl2exe_include Tie::Hash::NamedCapture
-#perl2exe_include Errno
+
 
 # hey skip on perl2exe
 if ($^X =~ /(perl)|(perl\.exe)$/i) {
@@ -34,6 +33,7 @@ use Encode::Byte;
 use DBI;
 use DBD::ODBC;
 use DBD::mysql;
+use Carp::Heavy;
 use DBD::SQLite;
 use Storable qw(nstore retrieve);
 use Text::LevenshteinXS qw(distance);

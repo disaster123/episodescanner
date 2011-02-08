@@ -1,4 +1,4 @@
-@echo off
+#@echo off
 
 rmdir /S /Q episodescanner
 rmdir /S /Q build
@@ -16,9 +16,12 @@ cd build
 "%progpath%\p2x\perl2exe" -tiny -I=C:\strawberry/perl/vendor/lib episodescanner
 mkdir lib
 move *.dll lib
-copy C:\strawberry\c\bin\libgcc_s_sjlj-1.dll lib
-copy C:\strawberry\c\bin\libmysql_.dll lib
-move lib\p2x5101.dll .
+REM copy C:\strawberry\c\bin\libgcc_s_sjlj-1.dll lib
+REM copy C:\strawberry\c\bin\libmysql_.dll lib
+REM copy C:\strawberry\c\bin\libxml2-2_.dll lib
+REM copy C:\strawberry\c\bin\libiconv-2_.dll lib
+REM copy C:\strawberry\c\bin\libz_.dll lib
+move lib\p2x*.dll .
 cd ..
 
 xcopy ..\*.dll build
