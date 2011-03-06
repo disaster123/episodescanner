@@ -47,7 +47,7 @@ use XML::Simple;
 use XML::Parser;
 use HTML::Entities;
 use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
-use Time::HiRes qw( usleep );
+use Time::HiRes qw( usleep sleep );
 
 
 my $currentProcess;
@@ -205,7 +205,7 @@ if ($use_tv_tb) {
 # Go through all TV Series
 foreach my $tv_serie (sort keys %tvserien)  {
  	# sleep so that there are not too much cpu seconds and speed keeps slow
-	usleep(500);
+	sleep(1);
 	Log::log("\nSerie: $tv_serie");
 
 	RESCAN:
@@ -222,7 +222,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
     }
     $abf_g->execute($tv_serie) or die $DBI::errstr;
     while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
-	    usleep(200);
+	    sleep(0.5);
         # print Dumper($akt_tv_serie_h)."\n\n";
     	     
         my $seriesname = $tv_serie;
