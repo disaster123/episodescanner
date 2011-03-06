@@ -1,3 +1,5 @@
 @echo off
 
-bin\episodescanner.exe -loop
+:loop
+bin\episodescanner.exe
+goto loop;
