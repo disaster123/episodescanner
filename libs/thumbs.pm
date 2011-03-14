@@ -8,7 +8,7 @@ use warnings;
 our $VERSION = '0.01';
 
 sub ErrorReport{
-        print Win32::FormatMessage( Win32::GetLastError() );
+        print STDERR Win32::FormatMessage( Win32::GetLastError() );
 }
 
 sub processfile {
@@ -35,6 +35,7 @@ sub processfile {
        #  timeout => 3,
 
 	   my $cmd;
+	   my $params;
 	   $prog =~ s#\$\{filename\}#${filename}#ig;
 	   $prog =~ s#\$\{basefile\}#${basefile}#ig;
 	   $prog =~ s#\$\{basedir\}#${basedir}#ig;
@@ -43,11 +44,13 @@ sub processfile {
 	   $thumb_filename =~ s#\$\{basedir\}#${basedir}#ig;
 	   $prog =~ s#\\#\\\\#ig;
 	   unlink($thumb_filename) if (-e "$thumb_filename");
-       if ($prog =~ /^"([^"]+)"/) {
+       if ($prog =~ /^"([^"]+)"\s+(.*)$/) {
 	      $cmd = $1;
+		  $params = $2;
 	   } else {
-    	  $prog =~ m#^(.*?)\s+#;
+    	  $prog =~ m#^(.*?)\s+(.*)$#;
     	  $cmd = $1;
+		  $params = $2;
 	   }
 
 	   if (!-e $cmd) {
@@ -57,11 +60,11 @@ sub processfile {
 	   my $mtn_obj;
        Log::log("Run: ".Dumper($prog_h)) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   Win32::Process::Create($mtn_obj,
-                                "$cmd",
-                                $prog.((defined $ENV{DEBUG} && $ENV{DEBUG} == 1) ? "" : ' >>log.txt 2>>log.txt'),
-                                0,
-                                (IDLE_PRIORITY_CLASS),
-                                '.') || die ErrorReport();
+                              $cmd,
+                              $params.((defined $ENV{DEBUG} && $ENV{DEBUG} == 1) ? "" : ' >log.txt 2>log.txt'),
+                              0,
+                              IDLE_PRIORITY_CLASS,
+                              '.') || die ErrorReport();
 
        my $c = 0;
 	   my $exitcode;
@@ -81,6 +84,7 @@ sub processfile {
 	      rename "$thumb_filename", "${basedir}\\${basefile}.jpg";
 		  return "${basedir}\\${basefile}.jpg";
 	   } else {
+          Log::log("No Thumb file found: $thumb_filename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	      unlink("$thumb_filename");
 	   }
    }
