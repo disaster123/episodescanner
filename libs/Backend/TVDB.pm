@@ -38,9 +38,9 @@ sub new {
     # delete Cache if it is older than 2 days
     if (-e 'tmp/'.$progbasename.'.cache') {
         # in Tagen
-        my $creation = int((time() - (stat('tmp/'.$progbasename.'.cache'))[10])/60/60/24);
-        if ($creation > 2) {   # 2 Tage
-          Log::log("deleted TVDB Cache - was $creation days old");
+        my $created = int((time() - (stat('tmp/'.$progbasename.'.cache'))[10])/60/60/24);
+        if ($created > 2) {   # 2 Tage
+          Log::log("deleted TVDB Cache - was $created days old");
           # delete TVDB Cache every 2 days
           unlink('tmp/'.$progbasename.'.cache');
         }
@@ -83,7 +83,7 @@ sub search() {
   if (!defined $lang) {
     foreach my $l (@{$self->{language}}) {
        my ($e, $s) = $self->search($seriesname, $episodename, \%subst, $l);
-	   return ($e, $s) if ($e && $s && $e > 0 && $s > 0);
+	   return ($e, $s) if (defined $e && defined $s && $e && $s && $e > 0 && $s > 0);
 	}
 	return (0, 0);
   }  

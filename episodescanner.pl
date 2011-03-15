@@ -48,7 +48,7 @@ use XML::Parser;
 use HTML::Entities;
 use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
 use Time::HiRes qw( usleep sleep );
-
+use Cmd;
 
 my $currentProcess;
 if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(), 0)) {
@@ -128,8 +128,6 @@ our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
 Log::log("got Win32 Codepage: ".$w32encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 our $encoding = ($w32encoding ? resolve_alias($w32encoding) : '')  || '';
 Log::log("got resolved alias: ".$encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-
-LOOPSTART:
 
 if ($usemysql) {
   Log::log("using MySQL", 0);
@@ -226,9 +224,9 @@ foreach my $tv_serie (sort keys %tvserien)  {
         # print Dumper($akt_tv_serie_h)."\n\n";
     	     
         my $seriesname = $tv_serie;
+        my $episodename = $akt_tv_serie_h->{'episodeName'};
         $seriesname =~ s#\s+$##;
         $seriesname =~ s#^\s+##;
-        my $episodename = $akt_tv_serie_h->{'episodeName'};
         $episodename =~ s#\s+$##;
         $episodename =~ s#^\s+##;
         Log::log("\n\tEpisode: $episodename");
@@ -260,7 +258,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
         my ($episodenumber, $seasonnumber) = ("", "");
         if ($use_wunschliste) {
-		    eval {
+		    Cmd::fork_and_wait {
                ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
 			};
 			if ($@) {
@@ -269,7 +267,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 			}
         }
 	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-		    eval {
+		    Cmd::fork_and_wait {
 		       ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
 			};
 			if ($@) {
@@ -278,7 +276,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 			}
 	    }
 	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
-		    eval {
+		    Cmd::fork_and_wait {
 	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
             };
 			if ($@) {
@@ -496,12 +494,10 @@ Log::log("\nEND\n");
 
 sleep($sleep);
 
-#if (defined $ARGV[0] && $ARGV[0] eq "-loop") {
-#   goto LOOPSTART;
-#}
-
 ## END
 exit;
+
+
 
 
 #### SUBS
@@ -669,7 +665,6 @@ sub get_recordings() {
 
 return %recs;
 }
-
 
 sub basename {
    my $dir = shift;
