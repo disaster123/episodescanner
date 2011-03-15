@@ -35,16 +35,20 @@ sub new {
 	my $thetvdb_language = shift || 'en';
     my $self = {};
 
+    unlink('tmp/'.$progbasename.'.tvdb_cache_tmp');
     # delete Cache if it is older than 2 days
-    if (-e 'tmp/'.$progbasename.'.cache') {
+    if (-e 'tmp/'.$progbasename.'.tvdb_cache') {
         # in Tagen
-        my $created = int((time() - (stat('tmp/'.$progbasename.'.cache'))[10])/60/60/24);
+        my $created = int((time() - (stat('tmp/'.$progbasename.'.tvdb_cache'))[10])/60/60/24);
         if ($created > 2) {   # 2 Tage
           Log::log("deleted TVDB Cache - was $created days old");
           # delete TVDB Cache every 2 days
-          unlink('tmp/'.$progbasename.'.cache');
+          unlink('tmp/'.$progbasename.'.tvdb_cache');
         }
     }	
+    if (-e 'tmp/'.$progbasename.'.tvdb_cache') {
+	  rename 'tmp/'.$progbasename.'.tvdb_cache', 'tmp/'.$progbasename.'.tvdb_cache_tmp';
+    }
 	
 	if ($thetvdb_language =~ /\|/) {
       @{$self->{language}} = split(/\|/, $thetvdb_language);
@@ -52,21 +56,21 @@ sub new {
       push(@{$self->{language}}, $thetvdb_language);
 	}
 
-	foreach my $lang (@{$self->{language}}) {
-      $self->{tvdb}->{$lang} = TVDB::API::new(
-	                    {
+    $self->{tvdb} = TVDB::API::new( {    # do not use ->new TVDB::API is buggy
+	                       lang      => ${$self->{language}}[0], # we need a default lang
 	                       apikey    => $apikey,
-                           lang      => $lang,
-                           cache     => 'tmp/'.$progbasename.'_tvdb.cache',
+                           cache     => 'tmp/'.$progbasename.'.tvdb_cache_tmp',
                            banner    => 'tmp',
-                           useragent => "TVDB::API/$TVDB::API::VERSION"
-                        });
-	}
+                           useragent => "TVDB::API/".$TVDB::API::VERSION
+                        } );
     $self->{cache} = ();
 
   return bless $self, $type;
 }
 
+sub DESTROY {
+  rename 'tmp/'.$progbasename.'.tvdb_cache_tmp', 'tmp/'.$progbasename.'.tvdb_cache';
+}
 
 sub search() {
   my $self = shift;
@@ -93,10 +97,11 @@ sub search() {
 	return (0, 0);
   }  
   
+  $self->{'tvdb'}->setLang($lang);
   Log::log("\tsearch on http://www.thetvdb.com/ Language: ".$lang."...");
 
   utf8::encode($seriesname);
-  $hr = $self->{tvdb}->{$lang}->getPossibleSeriesId($seriesname, [0]);
+  $hr = $self->{tvdb}->getPossibleSeriesId($seriesname, [0]);
   Log::log("\tError: $@", 0) if ($@);
   Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
   utf8::decode($seriesname);
@@ -130,7 +135,7 @@ sub search() {
 
   if (!defined $self->{cache}->{$lang}->{getSeriesAll}{$seriesid}) {
     ##############print "getSeriesAll Not in Cache\n";
-    $hr = $self->{tvdb}->{$lang}->getSeriesAll($seriesid, [0]);
+    $hr = $self->{tvdb}->getSeriesAll($seriesid, [0]);
     Log::log("\tError: $@", 0) if ($@);
     $self->{cache}->{$lang}->{getSeriesAll}{$seriesid} = $hr;
   } else {
@@ -163,7 +168,7 @@ sub search() {
 		     my %episodedata;
 
 		     if (!defined $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]}) {
-                 $episodedata = $self->{tvdb}->{$lang}->getEpisodeId($episodes[$episodenr-1]);
+                 $episodedata = $self->{tvdb}->getEpisodeId($episodes[$episodenr-1]);
                  Log::log("\tError: $@", 0) if ($@);
 			     $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]} = $episodedata;
             } else {

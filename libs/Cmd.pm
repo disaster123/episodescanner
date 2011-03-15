@@ -10,13 +10,18 @@ sub fork_and_wait(&) {
   my $timeout = 30;
   
   eval {
-    local $SIG{'ALRM'} = sub { die "ALRM\n\n"; };
+    local $SIG{'ALRM'} = sub { 
+	                           die "ALRM\n\n"; 
+                           	 };
 	alarm($timeout);
 	shift->();
 	alarm(0);
   };
-  if ($@ && $@ eq "ALRM\n\n") {
+  if ($@ && $@ =~ /^ALRM\n\n/) {
     &Log::log("Query timed out...");
+	$@ = undef;
+  } elsif ($@ && $@ =~ /DBM::Deep/) {
+    &Log::log("DBM Error - Please delete all files in tmp folder");
 	$@ = undef;
   } elsif ($@) {
     &Log::log($@);
