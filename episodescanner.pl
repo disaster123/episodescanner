@@ -10,7 +10,6 @@ BEGIN {
     $program_dir = $1;
   }
   chdir($program_dir);
-  $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
 }
 
 use lib 'lib';

@@ -96,9 +96,7 @@ sub search() {
   Log::log("\tsearch on http://www.thetvdb.com/ Language: ".$lang."...");
 
   utf8::encode($seriesname);
-  eval {
-    $hr = $self->{tvdb}->{$lang}->getPossibleSeriesId($seriesname, [0]);
-  };
+  $hr = $self->{tvdb}->{$lang}->getPossibleSeriesId($seriesname, [0]);
   Log::log("\tError: $@", 0) if ($@);
   Log::log("\t".Dumper($hr), 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
   utf8::decode($seriesname);
@@ -132,9 +130,7 @@ sub search() {
 
   if (!defined $self->{cache}->{$lang}->{getSeriesAll}{$seriesid}) {
     ##############print "getSeriesAll Not in Cache\n";
-    eval {
-      $hr = $self->{tvdb}->{$lang}->getSeriesAll($seriesid, [0]);
-    };
+    $hr = $self->{tvdb}->{$lang}->getSeriesAll($seriesid, [0]);
     Log::log("\tError: $@", 0) if ($@);
     $self->{cache}->{$lang}->{getSeriesAll}{$seriesid} = $hr;
   } else {
@@ -167,9 +163,7 @@ sub search() {
 		     my %episodedata;
 
 		     if (!defined $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]}) {
-                 eval {
-                   $episodedata = $self->{tvdb}->{$lang}->getEpisodeId($episodes[$episodenr-1]);
-                 };
+                 $episodedata = $self->{tvdb}->{$lang}->getEpisodeId($episodes[$episodenr-1]);
                  Log::log("\tError: $@", 0) if ($@);
 			     $self->{cache}->{$lang}->{getEpisodeId}{$episodes[$episodenr-1]} = $episodedata;
             } else {

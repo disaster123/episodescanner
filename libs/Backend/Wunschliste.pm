@@ -101,7 +101,7 @@ sub search {
         my $regtest = $self->staffeltitle_to_regtest($fs_title, %subst);
 
 		if (!defined $staffeln{$fs_title}{S}) {
-            Log::log("\tSkipping $regtest - no episode or series information at wunschliste - this is probably a TV Show not series", 0);
+            Log::log("\tSkipping $regtest - no episode or series information at Wunschliste - this is probably a TV Show not a series", 0);
 			return (-1, 0);
         }
 		

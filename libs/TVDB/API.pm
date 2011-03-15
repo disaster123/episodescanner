@@ -192,7 +192,9 @@ sub _download {
 
 	# Download URL
 	my $req = HTTP::Request->new(GET => $url);
+	print "START Download\n";
 	my $res = $self->{ua}->request($req);
+	print "End Download\n";
 
 	if ($res->content =~ /(?:404 Not Found|The page your? requested does not exist)/i) {
 		&warning("TVDB::API: download $url, 404 Not Found\n");
