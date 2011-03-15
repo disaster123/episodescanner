@@ -124,7 +124,8 @@ sub search {
        $episodenumber = $fuzzy{episodenumber};
        $seasonnumber = $fuzzy{seasonnumber};
        Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}");
-   } else {
+   # check if there were detected one via fuzzy at all
+   } elsif (defined $fuzzy{name}) {
        Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 0);
    }
    

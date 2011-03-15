@@ -37,6 +37,8 @@ use DBI;
 use DBD::ODBC;
 use DBD::mysql;
 use DBD::SQLite;
+use Cmd;
+use threads::shared;
 
 # cp1252
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
@@ -142,16 +144,24 @@ Log::log("\n\tEpisode: $episodename");
 
 # start a new search on fernsehserien.de
 my ($episodenumber, $seasonnumber) = ("", "");
+share($episodenumber);
+share($seasonnumber);
 	      
 if ($ARGV[0] eq "wunschliste") {
    Log::log("Start wunschliste");
-   ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
+   Cmd::fork_and_wait {
+     ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
+   };
 } elsif ($ARGV[0] eq "fernsehserien") {
    Log::log("Start fernsehserien");
-  ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
+   Cmd::fork_and_wait {
+     ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
+   };
 } elsif ($ARGV[0] eq "thetvdb") {
    Log::log("Start: thetvdb");
-  ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
+   Cmd::fork_and_wait {
+     ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
+   };
 } else {
   Log::log("Do not know Engine $ARGV[0]");
 }

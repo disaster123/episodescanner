@@ -2,37 +2,43 @@ package Cmd;
 
 use strict;
 use warnings;
-use POSIX ":sys_wait_h";
+use Log;
 
+use threads;
+use threads::shared;
+use Data::Dumper;
+
+# remember to share each var before you do this ;-)
 sub fork_and_wait(&) {
-  my $pid = fork();
-  if (!defined $pid) {
-    die "Cannot fork\n"
-  }
-  if ($pid == 0) {
-    ## this is the child
-	print "$$ started\n";
-    shift->();
-	print "$$ done\n";
-    exit;
-  }
-  my $start = time();
-  for (;;) {
-    my $r = waitpid(-1, &WNOHANG);
-	print "$$ $pid $r\n";
-	if ($r == $pid) {
-	   last;
-	}
-	if (time()-30 > $start) {
-	  Log::log("Child $pid tooked too long killing");
-      kill POSIX::SIGINT, $pid;
-	  last;
-    }
-	sleep(1);
-  }
-  print "Returned from fork_and_wait\n";
+  my $timeout = 30;
+
+  my $t = threads->create('Cmd::start_thread',
+						  shift);
   
+  my $start = time();
+  my $c = 0;
+  while ($t->is_running()) {
+	 &Log::log("Thread is running ". ++$c, 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	 if ($start+$timeout < time()) {
+	   &Log::log("Kill subthread...");
+	   $t->kill('KILL');
+	   print "Last\n";
+	   last;
+	 }
+	 sleep(1);
+  }
+
   return 1;
+}
+
+sub start_thread {
+  $SIG{'KILL'} = sub { print "Thread got KILL\n"; threads->exit(); };
+sleep(35);
+  &Log::log("Thread started") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+  shift->();
+  &Log::log("Thread Ended") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+
+  threads->exit();
 }
 
 1;

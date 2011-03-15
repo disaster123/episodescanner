@@ -11,6 +11,8 @@ BEGIN {
   }
   chdir($program_dir);
   $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
+  
+  $ENV{DEBUG} = 1;
 }
 
 use lib 'lib';
@@ -49,6 +51,7 @@ use HTML::Entities;
 use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
 use Time::HiRes qw( usleep sleep );
 use Cmd;
+use threads::shared;
 
 my $currentProcess;
 if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(), 0)) {
@@ -257,6 +260,8 @@ foreach my $tv_serie (sort keys %tvserien)  {
         }
 
         my ($episodenumber, $seasonnumber) = ("", "");
+        share($episodenumber);
+        share($seasonnumber);
         if ($use_wunschliste) {
 		    Cmd::fork_and_wait {
                ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
