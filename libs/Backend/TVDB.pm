@@ -81,10 +81,15 @@ sub search() {
   my $seriesid = 0;
 
   if (!defined $lang) {
+    my $seriesnotfound = 0;
     foreach my $l (@{$self->{language}}) {
        my ($e, $s) = $self->search($seriesname, $episodename, \%subst, $l);
 	   return ($e, $s) if (defined $e && defined $s && $e && $s && $e > 0 && $s > 0);
+	   if ($e eq "-1") {
+	     $seriesnotfound++;
+	   }
 	}
+    return (-1, 0) if ($seriesnotfound == scalar(@{$self->{language}}));
 	return (0, 0);
   }  
   
@@ -103,7 +108,7 @@ sub search() {
 
   if (scalar(@possseries) == 0) {
       Log::log("\tSeries \"$seriesname\" not listed at TheTVDB");
-      return (0, 0);
+      return (-1, 0);
   }
 
   my $test_seriesname = $seriesname;
@@ -122,7 +127,7 @@ sub search() {
 	
   if ($seriesid == 0) {
       Log::log("\tCannot find $seriesname at TheTVDB");
-      return (0, 0);
+      return (-1, 0);
   }
 
   if (!defined $self->{cache}->{$lang}->{getSeriesAll}{$seriesid}) {
@@ -204,9 +209,9 @@ sub search() {
   if ($fuzzy{distance} <= $fuzzy{maxdistance} && $fuzzy{episodenumber} ne "" && $fuzzy{seasonnumber} ne "" && $episodenumber eq "" and $seasonnumber eq "") {
        $episodenumber = $fuzzy{episodenumber};
        $seasonnumber = $fuzzy{seasonnumber};
-       Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}", 1);
-   } elsif ($episodenumber eq "" and $seasonnumber eq "") {
-       Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}", 1);
+       Log::log("\tfound result via fuzzy search distance: $fuzzy{distance} Name: $fuzzy{name} Regtest: $fuzzy{regtest}");
+   } elsif (defined $fuzzy{name}) {
+       Log::log("\tnearest fuzzy found: Name: $fuzzy{name} Dist: $fuzzy{distance} S$fuzzy{seasonnumber}E$fuzzy{episodenumber}");
    }
 
  return ($seasonnumber, $episodenumber);

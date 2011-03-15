@@ -71,7 +71,7 @@ sub search {
 	   }
 
        Log::log("\tWas not able to find series/seriesindexpage \"$seriesname\" at Wunschliste");
-	   return (0, 0);
+	   return (-1, 0);
   }
 
   Log::log("\tGot series ID $id", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
@@ -79,7 +79,8 @@ sub search {
   my $xs = XMLin($page, (KeepRoot => 1));
 
   if (!ref($xs) || !ref($xs->{epgliste}) || !ref($xs->{epgliste}->{episode})) {
-     Log::log("\tRSS Feed does not contain valid EPG Info");
+     Log::log("\tRSS Feed does not contain valid EPG Info - more details logged");
+     Log::log(Dumper($xs), 1);
      return (0,0);
   }
   
@@ -100,8 +101,8 @@ sub search {
         my $regtest = $self->staffeltitle_to_regtest($fs_title, %subst);
 
 		if (!defined $staffeln{$fs_title}{S}) {
-            Log::log("\tSkipping $regtest - no episode or series information at wunschliste", 0);
-			next;
+            Log::log("\tSkipping $regtest - no episode or series information at wunschliste - this is probably a TV Show not series", 0);
+			return (-1, 0);
         }
 		
         $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');

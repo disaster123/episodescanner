@@ -11,8 +11,6 @@ BEGIN {
   }
   chdir($program_dir);
   $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
-  
-  $ENV{DEBUG} = 1;
 }
 
 use lib 'lib';
@@ -51,7 +49,6 @@ use HTML::Entities;
 use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
 use Time::HiRes qw( usleep sleep );
 use Cmd;
-use threads::shared;
 
 my $currentProcess;
 if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(), 0)) {
@@ -79,7 +76,7 @@ our $dbhost;
 our $sleep;
 our %recordingfilenames;
 our %tvserien;
-our %cache;
+our %backendcache;
 our %seriescache;
 our $FH;
 our $b_wl;
@@ -208,6 +205,12 @@ foreach my $tv_serie (sort keys %tvserien)  {
  	# sleep so that there are not too much cpu seconds and speed keeps slow
 	sleep(1);
 	Log::log("\nSerie: $tv_serie");
+	
+	if (defined $backendcache{wunschliste}{$tv_serie} && defined $backendcache{tvdb}{$tv_serie} &&
+	    defined $backendcache{fernsehserien}{$tv_serie}) {
+	  &Log::log("Skipping series - no backend knows it");
+	  next;
+	}
 
 	RESCAN:
 
@@ -222,7 +225,10 @@ foreach my $tv_serie (sort keys %tvserien)  {
        $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND seriesNum='' AND title LIKE ?;");
     }
     $abf_g->execute($tv_serie) or die $DBI::errstr;
-    while (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) {
+    while (
+	  !defined $backendcache{wunschliste}{$tv_serie} && !defined $backendcache{tvdb}{$tv_serie} && !defined $backendcache{fernsehserien}{$tv_serie} &&
+	  (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) ) {
+		  
 	    sleep(0.5);
         # print Dumper($akt_tv_serie_h)."\n\n";
     	     
@@ -260,34 +266,50 @@ foreach my $tv_serie (sort keys %tvserien)  {
         }
 
         my ($episodenumber, $seasonnumber) = ("", "");
-        share($episodenumber);
-        share($seasonnumber);
         if ($use_wunschliste) {
+		  if (!defined $backendcache{wunschliste}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
-               ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
+              ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
 			};
 			if ($@) {
-			    Log::log("Wunschliste Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
-				Log::log($@, 1);
+			  Log::log("Wunschliste Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+			  Log::log($@, 1);
+			} elsif ($seasonnumber =~ /\d+/ && $seasonnumber == -1) {
+              $backendcache{wunschliste}{$akt_tv_serie_h->{'title'}} = time();
 			}
+		  } else {
+		    &Log::log("\tWunschliste Backend skipped - series not known");
+		  }
         }
-	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
+	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
+		  if (!defined $backendcache{tvdb}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
-		       ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
+		      ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
 			};
 			if ($@) {
-			    Log::log("TheTVDB Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
-				Log::log($@, 1);
+			  Log::log("TheTVDB Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+			  Log::log($@, 1);
+			} elsif ($seasonnumber =~ /\d+/ && $seasonnumber == -1) {
+              $backendcache{tvdb}{$akt_tv_serie_h->{'title'}} = time();
 			}
+		  } else {
+		    &Log::log("\tTVDB Backend skipped - series not known");
+		  }
 	    }
-	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber == 0 || $seasonnumber eq "" || $seasonnumber == 0)) {
+	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
+		  if (!defined $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
-	           ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
+	          ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
             };
 			if ($@) {
-			    Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
-				Log::log($@, 1);
+			  Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+			  Log::log($@, 1);
+			} elsif ($seasonnumber =~ /\d+/ && $seasonnumber == -1) {
+              $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}} = time();
 			}
+	      } else {
+		    &Log::log("\tFernsehserien Backend skipped - series not known");
+		  }
         }
 	      
 	    if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
@@ -320,6 +342,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 } # end series
 
 nstore(\%seriescache, 'tmp/'.$progbasename.".seriescache"); 
+nstore(\%backendcache, 'tmp/'.$progbasename.".backendcache"); 
 
 Log::log("END seriessearch\n");
 
@@ -621,6 +644,7 @@ sub thumb_checkdir($$$) {
 
 sub load_and_clean_cache {
 	%seriescache = %{retrieve('tmp/'.$progbasename.".seriescache")} if (-e 'tmp/'.$progbasename.".seriescache");
+    %backendcache = %{retrieve('tmp/'.$progbasename.".backendcache")} if (-e 'tmp/'.$progbasename.".backendcache");
 	
 	### CLEAN Cache
 	foreach my $serie (keys %seriescache) {
@@ -633,6 +657,16 @@ sub load_and_clean_cache {
 		if ($seriescache{$serie}{$title}{seriesNum} ne "UNKNOWN" && $seriescache{$serie}{$title}{time} < (time()-(60*60*24*14))) {
 			print "Delete $serie $title from cache with $seriescache{$serie}{$title}{seriesNum}\n";
 			delete($seriescache{$serie}{$title});
+			next;
+		}
+	  }
+	}
+	### CLEAN Cache
+	foreach my $backend (keys %backendcache) {
+	  foreach my $series (keys %{$backendcache{$backend}}) {
+		if ($backendcache{$backend}{$series} < (time()-(60*60*24*1))) {
+			print "Delete $backend $series from cache\n";
+			delete($backendcache{$backend}{$series});
 			next;
 		}
 	  }

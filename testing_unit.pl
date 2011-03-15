@@ -38,7 +38,6 @@ use DBD::ODBC;
 use DBD::mysql;
 use DBD::SQLite;
 use Cmd;
-use threads::shared;
 
 # cp1252
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
@@ -144,8 +143,6 @@ Log::log("\n\tEpisode: $episodename");
 
 # start a new search on fernsehserien.de
 my ($episodenumber, $seasonnumber) = ("", "");
-share($episodenumber);
-share($seasonnumber);
 	      
 if ($ARGV[0] eq "wunschliste") {
    Log::log("Start wunschliste");

@@ -42,7 +42,8 @@ sub search {
   Log::log("\tsearch on http://www.fernsehserien.de/...");
 
   my $page = _myget("http://www.fernsehserien.de/index.php", ( suche => $seriesname ));
-
+  
+  FS_RECHECK:
   # test if it is directly a result page
   if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenführer/i) {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
@@ -68,6 +69,7 @@ sub search {
 	    $uri =~ s#\?.*$##;
 	  }
 	  $page = _myget("http://www.fernsehserien.de/".$uri, %par);
+	  goto FS_RECHECK;
 	} else {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
@@ -78,7 +80,7 @@ sub search {
 	   }
 	   
        Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Fernsehserien");
-	   return (0, 0);
+	   return (-1, 0);
 	}
   }
 
@@ -133,7 +135,7 @@ sub search {
        Log::log("\tfound series but not episode \"$episodename\" at Fernsehserien");
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
-		   open($FH, ">wunschliste_".++$self->{'debug_counter'}.".htm");
+		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
 		   close($FH);
            Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 0)
