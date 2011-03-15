@@ -58,10 +58,11 @@ sub processfile {
 		  next;
 	   }
 	   my $mtn_obj;
+       Log::log("Command \"$prog\"");
        Log::log("Run: ".Dumper($prog_h)) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	   Win32::Process::Create($mtn_obj,
                               $cmd,
-                              $params,
+                              $prog,
                               0,
                               IDLE_PRIORITY_CLASS,
                               '.') || die ErrorReport();
