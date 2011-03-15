@@ -15,8 +15,9 @@ sub fork_and_wait(&) {
 	shift->();
 	alarm(0);
   };
-  if ($@ && $@ eq "ALRM") {
+  if ($@ && $@ eq "ALRM\n\n") {
     &Log::log("Query timed out...");
+	$@ = undef;
   } elsif ($@) {
     &Log::log($@);
   }

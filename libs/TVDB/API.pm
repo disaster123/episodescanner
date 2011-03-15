@@ -74,6 +74,7 @@ sub new {
 	$self->setCacheDB($args->{cache});
 	$self->setApiKey($args->{apikey});
 	$self->{ua} = LWP::UserAgent->new;
+	$self->{ua}->timeout(30);
 	$self->{ua}->env_proxy();
 	$self->setUserAgent($args->{useragent});
 	$self->{xml} = XML::Simple->new(

@@ -5,6 +5,8 @@ rmdir /S /Q installer
 rmdir /S /Q release
 rmdir /S /Q project\testbuild
 
+REM if not exist cava20.cpkgproj
+
 set progpath=%ProgramFiles%
 if not "%ProgramFiles(x86)%".=="". set progpath=%ProgramFiles(x86)%
 
