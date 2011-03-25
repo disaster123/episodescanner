@@ -51,14 +51,18 @@ sub search {
   # http://www.wunschliste.de/index.pl?query_art=titel&query=90210
   my ($page, $redirect_url) = _myget("http://www.wunschliste.de/index.pl", ( query_art => 'titel', query => $seriesname ));
 
+  # remove all underline marks - as it marks our searchwords
+  $page =~ s#<strong><u>(.*?)</u></strong>#$1#igs;
+  
   # test if it is directly a result page
   if ($redirect_url =~ /\/(\d+)$/) {
      $id = $1;
   } elsif ($page =~ m#<link[^\>]*href="/xml/rss\.pl\?s=(\d+)"#i) {
      # <link rel="ALTERNATE" type="application/rss+xml" title="Mister Maker TV-Vorschau (RSS)" href="/xml/rss.pl?s=13103">
      $id = $1;
-  } elsif ($page =~ m#<a\s+href="/(\d+)">(<strong><u>)*\Q$seriesname\E(</u></strong>)*#i) {
+  } elsif ($page =~ m#<a\s+href="/(\d+)">\Q$seriesname\E</a>#i) {
      # Try to get all Series
+	 # <a href="/3125"><strong><u>Tatort</u></strong></a>
      # <a href="/12391"><strong><u>90210</u></strong></a>
      $id = $1;
   } else {
@@ -88,8 +92,8 @@ sub search {
   eval {
      %staffeln = $self->get_staffel_hash($xs);
   };
-  if ($@) {
-     Log::log($@);
+  # ignore any error here - ONLY print it in DEBUG Mode
+  if ($@ && defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 	 Log::log("ERROR: $@\n", 1);
   }
   
@@ -97,14 +101,21 @@ sub search {
   $fuzzy{distance} = 99;
   $fuzzy{maxdistance} = 2;
   my $episodename_search = $self->staffeltitle_to_regtest($episodename, %subst);
+
+  # do it this way - sometimes we have only some not known series
+  my $found = 0;  
+  foreach my $fs_title (sort keys %staffeln) {
+    if (defined $staffeln{$fs_title}{S}) {
+	  $found++;
+    }
+  }
+  if (!$found) {
+    Log::log("\tSkipping - no episode or series information at Wunschliste - this is probably a TV Show not a series", 0);
+    return (-1, 0);
+  }
+  
   foreach my $fs_title (sort keys %staffeln) {
         my $regtest = $self->staffeltitle_to_regtest($fs_title, %subst);
-
-		if (!defined $staffeln{$fs_title}{S}) {
-            Log::log("\tSkipping $regtest - no episode or series information at Wunschliste - this is probably a TV Show not a series", 0);
-			return (-1, 0);
-        }
-		
         $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');
         if ($episodename_search eq $regtest) {
 	         Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
@@ -149,6 +160,12 @@ sub get_staffel_hash {
 
    foreach my $h (@{$xs->{epgliste}->{episode}}) {
         utf8::decode($h->{episodentitel});
+		
+		# if we have a episodenummer but no staffel set staffel to 1
+		# for example tatort
+		if (!defined $h->{staffel} && defined $h->{episodennummer} && $h->{episodennummer} > 0) {
+  		  $h->{staffel} = 1;
+		}
         $r{$h->{episodentitel}}{E} = $h->{episodennummer};
         $r{$h->{episodentitel}}{S} = $h->{staffel};
    }   

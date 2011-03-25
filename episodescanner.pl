@@ -104,6 +104,7 @@ our $thumbs = 0;
 our @thumb_dirs;
 our @thumb_fileext;
 our @thumb_progs;
+our %thumb_blacklist;
 our $cleanup_recordings_tvseries = 0;
 our $cleanup_recordings_tvseries_db = '';
 our $cleanup_recordings_tvseries_db_mainpath = '';
@@ -610,6 +611,13 @@ sub thumb_checkdir($$$) {
 
   my $thumb_fileext_regex = join('|', map {quotemeta($_)} @$thumb_fileext);
 
+  %thumb_blacklist = %{retrieve('tmp/'.$progbasename.".thumbblacklist")} if (-e 'tmp/'.$progbasename.".thumbblacklist");
+  foreach my $file (keys %thumb_blacklist) {
+    if (!-e $file) {
+	  delete($thumb_blacklist{$file});
+	}
+  }
+  
   Log::log("\tCheck dir $dir Fileext: $thumb_fileext_regex", 1);
 
   my $DIRH;
@@ -626,18 +634,26 @@ sub thumb_checkdir($$$) {
 	   my $basefile = $f;
        $basefile =~ s#\.[a-z]+$##;
        next if (-e "$dir\\$basefile.jpg" && !-z "$dir\\$basefile.jpg");
+       # skip if the file is not at least 10 min old
 	   next if (int((time() - (stat("$dir\\$f"))[9])/60) < 10); 
-
-
+	   
+	   if ($thumb_blacklist{"$dir\\$f"} > 3) {
+	     Log::log("\tSkipping Thumb generation for: \"$dir\\$f\"");
+	     next;
+	   }
+	   
        Log::log("\tCreating Thumb for "."$dir\\$f");     
 	   my $filename = thumbs::processfile("$dir\\$f", @$thumb_progs);
        if (!defined $filename) {
-          Log::log("\tThumb not created");  
+          Log::log("\tThumb not created: \"$dir\\$f\"");
+		  $thumb_blacklist{"$dir\\$f"}++;
        } else {
-          Log::log("\tThumb created: ".$filename);     
+          Log::log("\tThumb created: ".$filename);
        }
     }
   }
+  
+  nstore(\%thumb_blacklist, 'tmp/'.$progbasename.".thumbblacklist"); 
 }
 
 
