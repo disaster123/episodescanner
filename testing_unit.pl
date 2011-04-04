@@ -61,7 +61,7 @@ our $FH;
 our $b_wl;
 our $b_fs;
 our $b_tvdb;
-our $use_tv_tb;
+our $use_tvdb;
 our $thetvdb_language = "de|en";
 our $use_fernsehserien;
 our $use_wunschliste;

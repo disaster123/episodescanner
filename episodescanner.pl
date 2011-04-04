@@ -81,7 +81,7 @@ our $FH;
 our $b_wl;
 our $b_fs;
 our $b_tvdb;
-our $use_tv_tb;
+our $use_tvdb;
 our $thetvdb_language = "de";
 our $use_fernsehserien;
 our $use_wunschliste;
@@ -119,7 +119,7 @@ die "sleep value below 30 not allowed - we do not want to stress the websites to
 
 Log::start();
 
-if ($use_tv_tb && !defined $tvdb_apikey || $tvdb_apikey eq "") {
+if ($use_tvdb && !defined $tvdb_apikey || $tvdb_apikey eq "") {
   Log::log("use global TVDB API Key") if ();
   $tvdb_apikey = "24D235D27EFD8883";
 }
@@ -183,7 +183,7 @@ Log::log("Recordingdir: $cleanup_recordingdir") if ($cleanup_recordingfiles);
 # Build search objects
 $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
-if ($use_tv_tb) {
+if ($use_tvdb) {
   # as thetvdb build up a connection immediatly it makes sense to do this ONLY if the user wants this
   eval {
      $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
@@ -194,7 +194,7 @@ if ($use_tv_tb) {
 	exit;
   }
   if (!defined $b_tvdb) {
-     $use_tv_tb = 0;
+     $use_tvdb = 0;
   }
 }
 # get all recordings
@@ -206,8 +206,8 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	sleep(1);
 	Log::log("\nSerie: $tv_serie");
 	
-	if (defined $backendcache{wunschliste}{$tv_serie} && defined $backendcache{tvdb}{$tv_serie} &&
-	    defined $backendcache{fernsehserien}{$tv_serie}) {
+	if ((!$use_wunschliste || defined $backendcache{wunschliste}{$tv_serie}) && (!$use_tvdb || defined $backendcache{tvdb}{$tv_serie}) &&
+	    (!$use_fernsehserien || defined $backendcache{fernsehserien}{$tv_serie})) {
 	  &Log::log("Skipping series - no backend knows it");
 	  next;
 	}
@@ -226,8 +226,9 @@ foreach my $tv_serie (sort keys %tvserien)  {
     }
     $abf_g->execute($tv_serie) or die $DBI::errstr;
     while (
-	  !defined $backendcache{wunschliste}{$tv_serie} && !defined $backendcache{tvdb}{$tv_serie} && !defined $backendcache{fernsehserien}{$tv_serie} &&
-	  (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) ) {
+	  ((!$use_wunschliste || !defined $backendcache{wunschliste}{$tv_serie}) && (!$use_tvdb || !defined $backendcache{tvdb}{$tv_serie}) && 
+	   (!$use_fernsehserien || !defined $backendcache{fernsehserien}{$tv_serie})) &&
+	   (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) ) {
 		  
 	    sleep(0.5);
         # print Dumper($akt_tv_serie_h)."\n\n";
@@ -281,7 +282,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 		    &Log::log("\tWunschliste Backend skipped - series not known");
 		  }
         }
-	    if ($use_tv_tb && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
+	    if ($use_tvdb && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
 		  if (!defined $backendcache{tvdb}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
 		      ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
