@@ -7,6 +7,7 @@ use TVDB::API;
 use LWP::Simple;
 use URI::Escape;
 use Data::Dumper;
+use File::stat;
 use Win32::Codepage;
 use Encode qw(encode decode);
 use Encode::Alias;
@@ -39,9 +40,9 @@ sub new {
     # delete Cache if it is older than 2 days
     if (-e 'tmp/'.$progbasename.'.tvdb_cache') {
         # in Tagen
-        my $created = int((time() - (stat('tmp/'.$progbasename.'.tvdb_cache'))[10])/60/60/24);
+        my $created = int((time() - (stat('tmp/'.$progbasename.'.tvdb_cache')->ctime)) / 60 / 60 / 24);
         if ($created > 2) {   # 2 Tage
-          Log::log("deleted TVDB Cache - was $created days old");
+          Log::log( sprintf "deleted TVDB Cache - was $created days old - File %s", $progbasename.'.tvdb_cache' );
           # delete TVDB Cache every 2 days
           unlink('tmp/'.$progbasename.'.tvdb_cache');
         }

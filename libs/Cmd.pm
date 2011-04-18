@@ -7,7 +7,7 @@ use Log;
 use Data::Dumper;
 
 sub fork_and_wait(&) {
-  my $timeout = 30;
+  my $timeout = 300;
   
   eval {
     local $SIG{'ALRM'} = sub { 

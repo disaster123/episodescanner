@@ -225,8 +225,9 @@ foreach my $tv_serie (sort keys %tvserien)  {
        $abf_g = $dbh->prepare("SELECT * FROM program WHERE episodeName!= '' AND seriesNum='' AND title LIKE ?;");
     }
     $abf_g->execute($tv_serie) or die $DBI::errstr;
+	#print "STEFAN: Start Loop for $tv_serie\n";
     while (
-	  ((!$use_wunschliste || !defined $backendcache{wunschliste}{$tv_serie}) && (!$use_tvdb || !defined $backendcache{tvdb}{$tv_serie}) && 
+	  ((!$use_wunschliste || !defined $backendcache{wunschliste}{$tv_serie}) || (!$use_tvdb || !defined $backendcache{tvdb}{$tv_serie}) || 
 	   (!$use_fernsehserien || !defined $backendcache{fernsehserien}{$tv_serie})) &&
 	   (my $akt_tv_serie_h = $abf_g->fetchrow_hashref()) ) {
 		  
@@ -338,6 +339,15 @@ foreach my $tv_serie (sort keys %tvserien)  {
         }
 
     } # end episode of a series
+
+	 #print $use_wunschliste, "\n";
+     #print $backendcache{wunschliste}{$tv_serie}, "\n";
+	 #print $use_tvdb, "\n";
+	 #print $backendcache{tvdb}{$tv_serie}, "\n";
+     #print $use_fernsehserien , "\n";
+	 #print $backendcache{fernsehserien}{$tv_serie}, "\n";
+
+	#print "STEFAN: End Loop for $tv_serie\n";
     $abf_g->finish();
 
 } # end series
