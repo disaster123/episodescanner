@@ -197,8 +197,10 @@ if ($use_tvdb) {
      $use_tvdb = 0;
   }
 }
+
+Log::log("START seriessearch\n");
 # get all recordings
-%tvserien = &get_recordings();
+%tvserien = &get_recordings($backendcache{'skip'});
 
 # Go through all TV Series
 foreach my $tv_serie (sort keys %tvserien)  {
@@ -208,9 +210,11 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	
 	if (!((!$use_wunschliste || !defined $backendcache{wunschliste}{$tv_serie}) || (!$use_tvdb || !defined $backendcache{tvdb}{$tv_serie}) || 
 	   (!$use_fernsehserien || !defined $backendcache{fernsehserien}{$tv_serie}))) {
+	  $backendcache{'skip'}{$tv_serie} = time();
 	  &Log::log("Skipping series - no backend knows it");
 	  next;
 	}
+	delete($backendcache{'skip'}{$tv_serie});
 
 	RESCAN:
 
@@ -699,17 +703,20 @@ sub load_and_clean_cache {
 	}
 }
 
-sub get_recordings() {
+sub get_recordings {
+    my $skips = shift || {};
 	my %recs;
 	
 	my $abf;
 	if ($use4tr) {
 	   # 4TR stores it recording rules in XML Style...
        $abf = $dbh->prepare("SELECT Name, RulesXml FROM schedule WHERE IsActive = 1 AND IsOneTime = 0 AND RulesXml LIKE '%TitleEquals%';");
+	   $abf->execute() or die $DBI::errstr;
 	} else {
-       $abf = $dbh->prepare("SELECT * FROM schedule;");
+       $abf = $dbh->prepare("SELECT s.* FROM schedule AS s, program AS p WHERE s.programName = p.title AND p.episodeName != '' AND p.seriesNum = ''".
+                             ((keys %$skips) ? " AND s.programName NOT IN (".join ", ", ("?") x scalar(keys %$skips).")" : "") .  ";");
+	   $abf->execute(keys %$skips) or die $DBI::errstr;
 	}
-	$abf->execute() or die $DBI::errstr;
 	while (my $aktrec = $abf->fetchrow_hashref()) {
 	   if (defined $aktrec->{'RulesXml'}) {
 	       # extract title from RulesXML
