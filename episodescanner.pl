@@ -206,8 +206,8 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	sleep(1);
 	Log::log("\nSerie: $tv_serie");
 	
-	if ((!$use_wunschliste || defined $backendcache{wunschliste}{$tv_serie}) && (!$use_tvdb || defined $backendcache{tvdb}{$tv_serie}) &&
-	    (!$use_fernsehserien || defined $backendcache{fernsehserien}{$tv_serie})) {
+	if (!((!$use_wunschliste || !defined $backendcache{wunschliste}{$tv_serie}) || (!$use_tvdb || !defined $backendcache{tvdb}{$tv_serie}) || 
+	   (!$use_fernsehserien || !defined $backendcache{fernsehserien}{$tv_serie}))) {
 	  &Log::log("Skipping series - no backend knows it");
 	  next;
 	}
