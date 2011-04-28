@@ -198,7 +198,7 @@ if ($use_tvdb) {
   }
 }
 
-Log::log("START seriessearch\n");
+Log::log("START seriessearch");
 # get all recordings
 %tvserien = &get_recordings($backendcache{'skip'});
 
@@ -706,7 +706,7 @@ sub load_and_clean_cache {
 sub get_recordings {
     my $skips = shift || {};
 	my %recs;
-	
+		
 	my $abf;
 	if ($use4tr) {
 	   # 4TR stores it recording rules in XML Style...
@@ -714,7 +714,7 @@ sub get_recordings {
 	   $abf->execute() or die $DBI::errstr;
 	} else {
        $abf = $dbh->prepare("SELECT s.* FROM schedule AS s, program AS p WHERE s.programName = p.title AND p.episodeName != '' AND p.seriesNum = ''".
-                             ((keys %$skips) ? " AND s.programName NOT IN (".join ", ", ("?") x scalar(keys %$skips).")" : "") .  ";");
+                             ((keys %$skips) ? " AND s.programName NOT IN (".(join(", ", ("?") x scalar(keys %$skips))).")" : "") .  ";");
 	   $abf->execute(keys %$skips) or die $DBI::errstr;
 	}
 	while (my $aktrec = $abf->fetchrow_hashref()) {
