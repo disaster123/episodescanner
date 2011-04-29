@@ -75,17 +75,17 @@ sub processfile {
 	      $mtn_obj->GetExitCode($exitcode);
 	   }
 	   if ($c == $timeout) {
-	      Log::log("$cmd timed out try to kill PID: ".$mtn_obj->GetProcessID(), 1);
+	      Log::log("$cmd timed out try to kill PID: ".$mtn_obj->GetProcessID());
 		  $mtn_obj->Kill($exitcode);
 		  $exitcode = -1;
 	   }
-       Log::log("Exited with: $exitcode") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+       Log::log("Exited with: $exitcode");
 	   if (-e "$thumb_filename" && !-z "$thumb_filename") {
-          Log::log("Thumb file found: $thumb_filename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+          Log::log("Thumb file found: $thumb_filename");
 	      rename "$thumb_filename", "${basedir}\\${basefile}.jpg";
 		  return "${basedir}\\${basefile}.jpg";
 	   } else {
-          Log::log("No Thumb file found: $thumb_filename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+          Log::log("No Thumb file found: $thumb_filename");
 	      unlink("$thumb_filename");
 	   }
    }
