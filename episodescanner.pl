@@ -112,10 +112,7 @@ our $cleanup_recordings_tvseries_recordings_mainpath = '';
 our %episode_stubstitutions;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
-eval {
-  # require "config.txt";
-  do "config.txt";
-};
+eval("require \"config.txt\";");
 die $@."\n\n" if ($@);
 
 die "sleep value below 30 not allowed - we do not want to stress the websites too much!\n\n" if (!defined $sleep || $sleep < 30);
