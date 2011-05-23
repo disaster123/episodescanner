@@ -28,7 +28,7 @@ $use_wunschliste = 1;
 $use_fernsehserien = 1;
 
 # activate search on thetvdb.com
-$use_tv_tb = 1;
+$use_tvdb = 1;
 # TVDB (www.thetvdb.com) API Key - NOT Account Identifier
 # you can create your own API key in your account on www.thetvdb.com
 # if you leave this field blank it would use a global API key

@@ -112,17 +112,25 @@ our $cleanup_recordings_tvseries_recordings_mainpath = '';
 our %episode_stubstitutions;
 
 die "cannot find config.txt\n\n" if (!-e "config.txt");
-eval('push(@INC, "."); require "config.txt";');
+eval {
+  # require "config.txt";
+  do "config.txt";
+};
 die $@."\n\n" if ($@);
 
 die "sleep value below 30 not allowed - we do not want to stress the websites too much!\n\n" if (!defined $sleep || $sleep < 30);
 
 Log::start();
 
-if ($use_tvdb && !defined $tvdb_apikey || $tvdb_apikey eq "") {
-  Log::log("use global TVDB API Key") if ();
+Log::log("Started version #SVN 23.05.2011");
+
+if ($use_tvdb && (!defined $tvdb_apikey || $tvdb_apikey eq "")) {
+  Log::log("use global TVDB API Key");
   $tvdb_apikey = "24D235D27EFD8883";
+} else {
+  Log::log("using custom API Key");
 }
+
 # cp1252
 our $w32encoding = Win32::Codepage::get_encoding() || '';  # e.g. "cp1252"
 Log::log("got Win32 Codepage: ".$w32encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
@@ -194,7 +202,9 @@ if ($use_tvdb) {
 	exit;
   }
   if (!defined $b_tvdb) {
-     $use_tvdb = 0;
+    $use_tvdb = 0;
+  } else {
+    Log::log("TVDB Backend successfully initialized.") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
   }
 }
 
@@ -273,6 +283,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
         my ($episodenumber, $seasonnumber) = ("", "");
         if ($use_wunschliste) {
+          Log::log("Wunschliste Backend search started $seriesname, $episodename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 		  if (!defined $backendcache{wunschliste}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
               ($seasonnumber, $episodenumber) = $b_wl->search($seriesname, $episodename, \%episode_stubstitutions);	      
@@ -284,11 +295,12 @@ foreach my $tv_serie (sort keys %tvserien)  {
               $backendcache{wunschliste}{$akt_tv_serie_h->{'title'}} = time();
 			}
 		  } else {
-		    &Log::log("\tWunschliste Backend skipped - series not known");
+		    Log::log("\tWunschliste Backend skipped - series not known");
 		  }
         }
 	    if ($use_tvdb && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
-		  if (!defined $backendcache{tvdb}{$akt_tv_serie_h->{'title'}}) {
+          Log::log("TVDB Backend search started $seriesname, $episodename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	      if (!defined $backendcache{tvdb}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
 		      ($seasonnumber, $episodenumber) = $b_tvdb->search($seriesname, $episodename, \%episode_stubstitutions);
 			};
@@ -299,10 +311,11 @@ foreach my $tv_serie (sort keys %tvserien)  {
               $backendcache{tvdb}{$akt_tv_serie_h->{'title'}} = time();
 			}
 		  } else {
-		    &Log::log("\tTVDB Backend skipped - series not known");
+		    Log::log("\tTVDB Backend skipped - series not known");
 		  }
 	    }
 	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
+          Log::log("Fernsehserien Backend search started $seriesname, $episodename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 		  if (!defined $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
 	          ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
@@ -314,7 +327,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
               $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}} = time();
 			}
 	      } else {
-		    &Log::log("\tFernsehserien Backend skipped - series not known");
+		    Log::log("\tFernsehserien Backend skipped - series not known");
 		  }
         }
 	      
