@@ -119,7 +119,7 @@ die "sleep value below 30 not allowed - we do not want to stress the websites to
 
 Log::start();
 
-Log::log("Started version #SVN 23.05.2011");
+# Log::log("Started version #SVN 23.05.2011");
 
 if ($use_tvdb && (!defined $tvdb_apikey || $tvdb_apikey eq "")) {
   Log::log("use global TVDB API Key");
