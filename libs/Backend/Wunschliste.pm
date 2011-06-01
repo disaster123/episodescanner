@@ -65,7 +65,20 @@ sub search {
 	 # <a href="/3125"><strong><u>Tatort</u></strong></a>
      # <a href="/12391"><strong><u>90210</u></strong></a>
      $id = $1;
-  } else {
+  }
+
+  if (defined $id && $id =~ /^\d+$/) {
+    # get ID page to check if it has Episodes
+    $page = _myget("http://www.wunschliste.de/$id", ());
+	if ($page !~ m#/$id/episoden#i) {
+      Log::log("\tGot series ID $id but there are not episodes listed", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	  $id = undef;
+	} else {
+      Log::log("\tGot series ID $id", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	}
+  }
+
+  if (!defined $id) {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
 		   open($FH, ">wunschliste_".++$self->{'debug_counter'}.".htm");
@@ -78,7 +91,6 @@ sub search {
 	   return (-1, 0);
   }
 
-  Log::log("\tGot series ID $id", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
   $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $id, mp => '1'));
   my $xs = XMLin($page, (KeepRoot => 1));
 
@@ -178,8 +190,10 @@ sub staffeltitle_to_regtest {
         my $regtest = shift;
 		my %subst = @_;
   
-        $regtest = &EpiseodeSubst($regtest, %subst);
-  
+        $regtest = EpisodeSubst($regtest, %subst);
+# TODO CLEAN??
+return lc($regtest);
+
         $regtest =~ s#\s+$##;
         $regtest =~ s#^\s+##;
 		# Bad IDEA - it removes valid names

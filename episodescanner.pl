@@ -279,7 +279,23 @@ foreach my $tv_serie (sort keys %tvserien)  {
         }
 
         my ($episodenumber, $seasonnumber) = ("", "");
-        if ($use_wunschliste) {
+	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
+          Log::log("Fernsehserien Backend search started $seriesname, $episodename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+		  if (!defined $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}}) {
+		    Cmd::fork_and_wait {
+	          ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
+            };
+			if ($@) {
+			  Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
+			  Log::log($@, 1);
+			} elsif ($seasonnumber =~ /\d+/ && $seasonnumber == -1) {
+              $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}} = time();
+			}
+	      } else {
+		    Log::log("\tFernsehserien Backend skipped - series not known");
+		  }
+        }
+        if ($use_wunschliste && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
           Log::log("Wunschliste Backend search started $seriesname, $episodename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 		  if (!defined $backendcache{wunschliste}{$akt_tv_serie_h->{'title'}}) {
 		    Cmd::fork_and_wait {
@@ -311,22 +327,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
 		    Log::log("\tTVDB Backend skipped - series not known");
 		  }
 	    }
-	    if ($use_fernsehserien && ($episodenumber eq "" || $episodenumber <= 0 || $seasonnumber eq "" || $seasonnumber <= 0)) {
-          Log::log("Fernsehserien Backend search started $seriesname, $episodename") if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
-		  if (!defined $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}}) {
-		    Cmd::fork_and_wait {
-	          ($seasonnumber, $episodenumber) = $b_fs->search($seriesname, $episodename, \%episode_stubstitutions);
-            };
-			if ($@) {
-			  Log::log("Fernsehserien Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
-			  Log::log($@, 1);
-			} elsif ($seasonnumber =~ /\d+/ && $seasonnumber == -1) {
-              $backendcache{fernsehserien}{$akt_tv_serie_h->{'title'}} = time();
-			}
-	      } else {
-		    Log::log("\tFernsehserien Backend skipped - series not known");
-		  }
-        }
 	      
 	    if ($episodenumber ne "" && $episodenumber != 0 && $seasonnumber ne "" && $seasonnumber != 0) {
 	       	$seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} = $seasonnumber;

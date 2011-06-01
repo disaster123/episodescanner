@@ -6,10 +6,10 @@ use Data::Dumper;
 
 @ISA = qw(Exporter);
 
-@EXPORT = qw( EpiseodeSubst );
+@EXPORT = qw( EpisodeSubst );
 
 
-sub EpiseodeSubst {
+sub EpisodeSubst {
    my $str = shift;
    my %subst = @_;
    
@@ -18,7 +18,7 @@ sub EpiseodeSubst {
       $nstr =~ s#$k#$subst{$k}#ig;
    }
  
-   Log::log("\tEpisodeSubst \"$str\" converted to \"$nstr\"", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+   Log::log("\tEpisodeSubst \"$str\" converted to \"$nstr\"", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1 && $str ne $nstr);
  
  return $nstr;
 }

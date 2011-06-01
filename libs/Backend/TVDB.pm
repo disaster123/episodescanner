@@ -222,8 +222,10 @@ sub staffeltitle_to_regtest {
         my $regtest = shift;
 		my %subst = @_;
   
-        $regtest = &EpiseodeSubst($regtest, %subst);
-  
+        $regtest = EpisodeSubst($regtest, %subst);
+# TODO CLEAN??
+return lc($regtest);
+
         $regtest =~ s#\s+$##;
         $regtest =~ s#^\s+##;
 		# Bad IDEA - it removes valid names

@@ -45,7 +45,14 @@ sub search {
   
   FS_RECHECK:
   # test if it is directly a result page
-  if (($page =~ /bisher\s+\d+\s+Episoden/i || ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i)) && $page =~ /Episodenführer/i) {
+  if ($page =~ /Episodenführer/i &&
+      (
+	   $page =~ /bisher\s+\d+\s+Episoden/i || 
+       ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i) ||
+       ($page =~ /\d+\s+Episoden/i && $page =~ /Staffel \d+/i)
+	  )
+	 )
+	 {
 	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
 		   my $FH;
 		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
@@ -194,7 +201,9 @@ sub staffeltitle_to_regtest {
         my $regtest = shift;
   		my %subst = @_;
   
-        $regtest = &EpiseodeSubst($regtest, %subst);
+        $regtest = EpisodeSubst($regtest, %subst);
+# TODO CLEAN??
+return lc($regtest);
 
         $regtest =~ s#\s+$##;
         $regtest =~ s#^\s+##;
