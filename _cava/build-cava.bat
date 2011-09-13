@@ -8,10 +8,12 @@ rmdir /S /Q project\testbuild
 REM if not exist cava20.cpkgproj
 
 set progpath=%ProgramFiles%
-if not "%ProgramFiles(x86)%".=="". set progpath=%ProgramFiles(x86)%
+REM if not "%ProgramFiles(x86)%".=="". set progpath=%ProgramFiles(x86)%
 
 echo ".svn" >No.SVN.txt
 
+REM echo %progpath%\Cava Packager\bin\cavaconsole
+REM pause
 "%progpath%\Cava Packager\bin\cavaconsole" --scan --build --project="%CD%\cava20.cpkgproj"
 
 xcopy ..\*.dll release
