@@ -399,7 +399,7 @@ if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db) {
    my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");
    
    my %tvseries_files;
-   my $sth = $tvseries_dbh->prepare("select * from local_episodes;");
+   my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;");
    $sth->execute();
    while (my $data = $sth->fetchrow_hashref()) {
       $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
