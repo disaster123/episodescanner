@@ -1,0 +1,23 @@
+# /
+/log.txt
+/config.txt
+
+# /_cava/
+/_cava/cava20.cpkgproj
+/_cava/cavapackager.exe.lnk
+/_cava/episodescanner
+/_cava/episodescanner.rar
+
+# /_cava/project/
+/_cava/project/build.log
+/_cava/project/buildlogdb.data
+/_cava/project/scan.data
+/_cava/project/scan.log
+/_cava/project/scanlogdb.data
+
+# /_cava/project/diag/
+/_cava/project/diag/buildsummary.dat
+/_cava/project/diag/diagnostic.exe
+
+# /tmp/
+/tmp/*
