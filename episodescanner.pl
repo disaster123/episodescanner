@@ -393,7 +393,8 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
 }
 
 ########################################### Clean tvseriescleanup
-if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db) {
+if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db && open(my $EFH, "<", $cleanup_recordings_tvseries_db)) {
+  close($EFH);
   Log::log("\nCleanup tvseriescleanup");
 
    my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");
