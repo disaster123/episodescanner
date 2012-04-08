@@ -14,7 +14,7 @@ echo ".svn" >No.SVN.txt
 
 REM echo %progpath%\Cava Packager\bin\cavaconsole
 REM pause
-"%progpath%\Cava Packager\bin\cavaconsole" --scan --build --project="%CD%\cava20.cpkgproj"
+"%progpath%\Cava Packager 2.0\bin\cavaconsole" --scan --build --project="%CD%\cava20.cpkgproj"
 
 xcopy ..\*.dll release
 xcopy ..\*.bat release

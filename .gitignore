@@ -19,5 +19,10 @@
 /_cava/project/diag/buildsummary.dat
 /_cava/project/diag/diagnostic.exe
 
+/_cava/project/cache/*
+/_cava/cava20-logs/
+/_cava/cava20-temp/
+/_cava/cava20/
+
 # /tmp/
 /tmp/*
