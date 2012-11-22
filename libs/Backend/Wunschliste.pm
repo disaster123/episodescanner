@@ -19,6 +19,7 @@ use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
+use utf8;
 
 BEGIN {
   $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
@@ -70,7 +71,8 @@ sub search {
   if (defined $id && $id =~ /^\d+$/) {
     # get ID page to check if it has Episodes
     $page = _myget("http://www.wunschliste.de/$id", ());
-	if ($page !~ m#/$id/episoden#i) {
+	# /serie/csi/episoden
+	if ($page !~ m#"/serie/.*?/episoden"#i) {
       Log::log("\tGot series ID $id but there are not episodes listed", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	  $id = undef;
 	} else {
