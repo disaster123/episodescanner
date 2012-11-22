@@ -486,7 +486,7 @@ if ($optimizemysqltables > 0) {
       my $abf = $dbh->prepare("SHOW databases;");
       $abf->execute();
       while (my $db = ($abf->fetchrow_array())[0]) {
-	     next if ($db eq "information_schema");
+	     next if ($db eq "information_schema" || $db eq "performance_schema");
          Log::log("optimize `$db`;");
          $dbh2->do("use `$db`;");
 
