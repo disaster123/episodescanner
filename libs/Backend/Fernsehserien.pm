@@ -17,6 +17,7 @@ use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
+use utf8;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
@@ -45,28 +46,14 @@ sub search {
   
   FS_RECHECK:
   # test if it is directly a result page
-  if ($page =~ /Episodenführer/i &&
-      (
-	   $page =~ /bisher\s+\d+\s+Episoden/i || 
-       ($page =~ /\d+\s+Episoden/i && $page =~ /\d+\. Staffel/i) ||
-       ($page =~ /\d+\s+Episoden/i && $page =~ /Staffel \d+/i)
-	  )
-	 )
-	 {
-	   if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1) {
-		   my $FH;
-		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
-		   print $FH $page;
-		   close($FH);
-           Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1);
-	   }
+  if ($page =~ m#<a href="([^"]{2,}/episodenguide)">Episodenguide</a>#) {
+        $page = _myget("http://www.fernsehserien.de/$1");
   } else {
     # Try to get all Series
-    #<td class=r><p><a href="index.php?serie=10147"><b>Psych</b></a>
-    my $t = $seriesname;
-    if ($page =~ m#<a href="([^"]+)">(<b>)*$t(</b>)*#i) {
+	# <span class="suchergebnis-titel">New Girl</span>
+    if ($page =~ m#href="([^"]+)".*?<span class="suchergebnis-titel">\Q$seriesname\E</span>#i) {
       my $uri = $1;
-      Log::log("Found page $uri", 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+      Log::log("Found new / remapped page $uri", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
       my %par = ();
       if ($uri =~ m#\?(.*)$#i) {
 	    foreach my $l (split(/&/, $1)) {
@@ -85,8 +72,8 @@ sub search {
 		   close($FH);
            Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 1);
 	   }
-	   
-       Log::log("\tWas not able to find series/seriesindexpage \"$t\" at Fernsehserien");
+
+       Log::log("\tWas not able to find series/seriesindexpage \"$seriesname\" at Fernsehserien");
 	   return (-1, 0);
 	}
   }
@@ -101,7 +88,7 @@ sub search {
   $page =~ s#\n\n#\n#ig;
 
   my %staffeln = $self->get_staffel_hash($page);
-
+  
   my %fuzzy = ();
   $fuzzy{distance} = 99;
   $fuzzy{maxdistance} = 2;
@@ -157,11 +144,15 @@ sub get_staffel_hash {
    my $self = shift;
    my $p = shift;
    my %r;
-	   
+
    my $aktstaffel = 0;
    my $start = 0;
    my $aktseries_in_staffel = 0;
-   foreach my $line (split(/\n/, $p)) {
+   my @lines = split(/\n/, $p);
+   # foreach my $i (0..$#lines) {
+   for (my $i = 0; $i <= $#lines; $i++) {
+     my $line = $lines[$i];
+	 chomp($line);
    
    	 if ($line =~ /^\s*bisher\s+\d+\s+(Episoden|Folgen)/i) {
 		# print "Start found == 1\n";
@@ -175,23 +166,30 @@ sub get_staffel_hash {
    	 }
 
    	 next if ($start == 0);
-   	 next if ($line !~ /^\s*\d+\./ && $line !~ /\d+$/);
    	
    	 if ($line =~ /^\s*(\d+)\. Staffel/i|| $line =~ /^\s*Staffel (\d+)$/i) {
 		$aktstaffel = $1;
 		$aktseries_in_staffel = 0;
    		next;
    	 }
-   	 next if (!defined $aktstaffel);
-   	 if ($line =~ /(\d+)\. (.*)$/i) {
+   	 next if (!$aktstaffel);
+
+#6
+#[98]
+#Entwischt
+#01.02.2006
+
+   	 if ($line =~ /^(\d+)$/ && $lines[$i+1] =~ /^\[\d+\]$/ && $lines[$i+3] =~ /^\d{2}\.\d{2}\.\d{4}$/) {
+	   $aktseries_in_staffel = $line;
    	   $aktstaffel = 1 if ($aktstaffel == 0);
-   	   $r{$2}{E} = ++$aktseries_in_staffel;
-   	   $r{$2}{S} = $aktstaffel;
+	   
+	   my $episodename = $lines[$i+2];
+   	   $r{$episodename}{E} = $aktseries_in_staffel;
+   	   $r{$episodename}{S} = $aktstaffel;
+	   $i += 4;
    	   next;
    	 }
-   	
    }
-   
 
 return %r;
 }
