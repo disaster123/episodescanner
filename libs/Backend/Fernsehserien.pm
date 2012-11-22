@@ -51,7 +51,8 @@ sub search {
   } else {
     # Try to get all Series
 	# <span class="suchergebnis-titel">New Girl</span>
-    if ($page =~ m#href="([^"]+)".*?<span class="suchergebnis-titel">\Q$seriesname\E</span>#i) {
+	my $seriesname_html = $self->html_entitiy($seriesname);
+    if ($page =~ m#href="([^"]+)".*?<span class="suchergebnis-titel">\Q$seriesname_html\E</span>#i) {
       my $uri = $1;
       Log::log("Found new / remapped page $uri", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
       my %par = ();
@@ -217,6 +218,15 @@ return lc($regtest);
         $regtest =~ s#\s+##g;
 
 return lc($regtest);
+}
+
+sub html_entitiy {
+   shift; # this is $self
+   my $r = shift;
+   
+   $r =~ s/&/&amp;/g;
+   
+   return $r;
 }
 
 sub _myget {
