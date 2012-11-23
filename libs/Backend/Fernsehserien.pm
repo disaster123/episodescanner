@@ -17,7 +17,6 @@ use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
-use utf8;
 
 my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
 my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
@@ -238,8 +237,12 @@ sub _myget {
 	$uri->query_form(%par);
 	
 	my $resp = $ua->get($uri);
+	my $r = $resp->content();
+	
+	# fernsehserien is UTF-8
+    $r = encode($encoding, decode('utf-8', $r));
 
-return $resp->content();
+return $r;
 }
 
 1;

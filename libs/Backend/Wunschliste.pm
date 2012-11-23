@@ -19,7 +19,6 @@ use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
-use utf8;
 
 BEGIN {
   $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
@@ -226,7 +225,11 @@ sub _myget {
        $re_url = $resp->{_request}->{_uri}->as_string;
 	};
 
-return wantarray ? ($resp->content(), $re_url) : $resp->content();
+	my $r = $resp->content();
+    # wunschliste is UTF-8
+    $r = encode($encoding, decode('utf-8', $r));
+
+return wantarray ? ($r, $re_url) : $r;
 }
 
 1;

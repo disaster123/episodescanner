@@ -183,7 +183,7 @@ if ($use4tr) {
 Log::log("Recordingdir: $cleanup_recordingdir") if ($cleanup_recordingfiles);
 
 # load series cache
-&load_and_clean_cache();
+load_and_clean_cache();
 
 # Build search objects
 $b_wl = new Backend::Wunschliste;
