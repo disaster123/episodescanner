@@ -2,24 +2,10 @@
 
 $| = 1;
 
-BEGIN {
-  $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
-  my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
-  $program_dir ||= ".";
-  if ($program_dir =~ m#^(.*)bin[\\/]{0,1}$#) {
-    $program_dir = $1;
-  }
-  chdir($program_dir);
-}
-
 use lib 'lib';
 use lib 'libs';
 use lib '.';
 
-# hey skip on cava
-if ($^X =~ /(perl)|(perl\.exe)$/i) {
-  eval("use Carp;\$SIG{__WARN__} = \\&Carp::cluck;\$SIG{__DIE__} = \\&Carp::confess;");
-}
 use warnings;
 use strict;
 use Config::General;
@@ -29,9 +15,6 @@ use Backend::Wunschliste;
 use Backend::Fernsehserien;
 use Backend::TVDB;
 use Data::Dumper;
-use Win32::Codepage;
-use Encode qw(encode decode resolve_alias);
-use Encode::Byte;
 use DBI;
 use DBD::ODBC;
 use DBD::mysql;
@@ -48,6 +31,10 @@ use HTML::Entities;
 use Win32::Process qw(STILL_ACTIVE IDLE_PRIORITY_CLASS NORMAL_PRIORITY_CLASS CREATE_NEW_CONSOLE);
 use Time::HiRes qw( usleep sleep );
 use Cmd;
+use Win32::Console;
+use Win32::Codepage;
+use Encode qw(encode decode resolve_alias);
+use Encode::Byte;
 
 my $currentProcess;
 if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(), 0)) {
@@ -56,9 +43,25 @@ if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(),
   die "Can not find myself ($^E)\n";
 }
  
-our $progbasename = &basename($0, '.exe');
+our $progbasename = basename($0, '.exe');
 our $DEBUG = (defined $ARGV[0] && $ARGV[0] eq "-debug") ? 1 : 0;
 $ENV{DEBUG} = $DEBUG;
+
+BEGIN {
+  $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
+  my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
+  $program_dir ||= ".";
+  if ($program_dir =~ m#^(.*)bin[\\/]{0,1}$#) {
+    $program_dir = $1;
+  }
+  chdir($program_dir);
+  binmode(STDOUT, ":unix:utf8");
+  Win32::Console::OutputCP( 65001 );
+}
+# hey skip on cava
+if ($^X =~ /(perl)|(perl\.exe)$/i) {
+  eval("use Carp;\$SIG{__WARN__} = \\&Carp::cluck;\$SIG{__DIE__} = \\&Carp::confess;");
+}
 
 #new episodescanner
 #my $conf = new Config::General(-ConfigFile => "episodescanner.settings", -ForceArray => 1, -AutoTrue => 1 );
@@ -138,20 +141,14 @@ if ($usemysql) {
   Log::log("using MySQL", 0);
   if ($use4tr) {
     Log::log("using 4TR Database", 0);
-    $dbh = DBI->connect( "dbi:mysql:database=$dbname_4tr:hostname=$dbhost",
-                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
-    $dbh2 = DBI->connect( "dbi:mysql:database=$dbname_4tr:hostname=$dbhost",
-                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
-    $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
-    $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
-  } else {
-    $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
-                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
-    $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
-                                                   $dbuser, $dbpw) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
-    $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
-    $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
+	$dbname = $dbname_4tr;
   }
+  $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
+                                                 $dbuser, $dbpw, {mysql_enable_utf8 => 1} ) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
+  $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
+                                                 $dbuser, $dbpw, {mysql_enable_utf8 => 1} ) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
+  $dbh->{InactiveDestroy} = 1;$dbh->{mysql_auto_reconnect} = 1;
+  $dbh2->{InactiveDestroy} = 1;$dbh2->{mysql_auto_reconnect} = 1;
 } else {
   # Overwrite mysql setting when using MSSQL
   $optimizemysqltables = 0;
@@ -191,7 +188,7 @@ $b_fs = new Backend::Fernsehserien;
 if ($use_tvdb) {
   # as thetvdb build up a connection immediatly it makes sense to do this ONLY if the user wants this
   eval {
-     $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
+     $b_tvdb = Backend::TVDB->new($progbasename, $tvdb_apikey, $thetvdb_language);
   };
   if ($@) {
     Log::log("TheTVDB Backend failed with unknown ERROR. Please run debug.bat and post your Log to forum.");
@@ -207,7 +204,7 @@ if ($use_tvdb) {
 
 Log::log("START seriessearch");
 # get all recordings
-%tvserien = &get_recordings($backendcache{'skip'});
+%tvserien = get_recordings($backendcache{'skip'});
 
 # Go through all TV Series
 foreach my $tv_serie (sort keys %tvserien)  {
@@ -226,7 +223,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
 	RESCAN:
 
     # GO through show in EPG DB for tv_serie
-    $tv_serie = encode($encoding, $tv_serie) if (defined $encoding && $encoding ne '');
     my $abf_g;
     if ($use4tr) {
        $abf_g = $dbh->prepare("SELECT SubTitle as episodeName, Title as title, GuideProgramId as idProgram
@@ -252,7 +248,7 @@ foreach my $tv_serie (sort keys %tvserien)  {
         $episodename =~ s#\s+$##;
         $episodename =~ s#^\s+##;
         Log::log("\n\tEpisode: $episodename");
-
+		
         # check Cache
         # defined and not UNKNOWN
         if (defined $seriescache{$akt_tv_serie_h->{'title'}}{$akt_tv_serie_h->{'episodeName'}}{seriesNum} && 
@@ -354,14 +350,6 @@ foreach my $tv_serie (sort keys %tvserien)  {
 
     } # end episode of a series
 
-	 #print $use_wunschliste, "\n";
-     #print $backendcache{wunschliste}{$tv_serie}, "\n";
-	 #print $use_tvdb, "\n";
-	 #print $backendcache{tvdb}{$tv_serie}, "\n";
-     #print $use_fernsehserien , "\n";
-	 #print $backendcache{fernsehserien}{$tv_serie}, "\n";
-
-	#print "STEFAN: End Loop for $tv_serie\n";
     $abf_g->finish();
 
 } # end series
@@ -405,9 +393,9 @@ if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db && open(m
    while (my $data = $sth->fetchrow_hashref()) {
       $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
 
-	  utf8::decode($data->{'EpisodeFilename'});
+      utf8::decode($data->{'EpisodeFilename'});
 	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
-	  $data->{'EpisodeFilename'} = encode($encoding, $data->{'EpisodeFilename'}) if (defined $encoding && $encoding ne '');
+	  $data->{'EpisodeFilename'} = encode($encoding, $data->{'EpisodeFilename'}) if (defined $encoding && $encoding);
 	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
    }
    $sth->finish();

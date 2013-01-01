@@ -9,13 +9,6 @@ use URI::Escape;
 use XML::Simple;
 use XML::Parser;
 use Data::Dumper;
-use Win32::Codepage;
-use Encode qw(encode decode);
-use Encode::Alias;
-use Encode::Encoding;
-use Encode::Encoder;
-use Encode::Symbol;
-use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
@@ -23,10 +16,6 @@ use Backend::EpisodeSubst;
 BEGIN {
   $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
 }
-
-my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
-my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
-my $ss = chr(223);
 
 sub new {
   my $self = bless {};
@@ -129,7 +118,6 @@ sub search {
   
   foreach my $fs_title (sort keys %staffeln) {
         my $regtest = $self->staffeltitle_to_regtest($fs_title, %subst);
-        $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');
         if ($episodename_search eq $regtest) {
 	         Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 			 
@@ -192,21 +180,6 @@ sub staffeltitle_to_regtest {
 		my %subst = @_;
   
         $regtest = EpisodeSubst($regtest, %subst);
-# TODO CLEAN??
-return lc($regtest);
-
-        $regtest =~ s#\s+$##;
-        $regtest =~ s#^\s+##;
-		# Bad IDEA - it removes valid names
-        # $regtest =~ s#\s+\(\d+\)$##;
-        $regtest =~ s#\.#\. #g;
-        $regtest =~ s#\.# #g;
-        $regtest =~ s#\-# #g;
-        $regtest =~ s#:# #g;
-        $regtest =~ s#&# #g;
-        $regtest =~ s#(\.|\!|\?)##g;
-        $regtest =~ s#$ss#ss#g;
-        $regtest =~ s#\s+##g;
 
 return lc($regtest);
 }
@@ -226,8 +199,6 @@ sub _myget {
 	};
 
 	my $r = $resp->content();
-    # wunschliste is UTF-8
-    $r = encode($encoding, decode('utf-8', $r));
 
 return wantarray ? ($r, $re_url) : $r;
 }

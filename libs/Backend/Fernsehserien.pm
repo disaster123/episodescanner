@@ -7,20 +7,9 @@ use URI;
 use URI::URL;
 use URI::Escape;
 use Data::Dumper;
-use Win32::Codepage;
-use Encode qw(encode decode);
-use Encode::Alias;
-use Encode::Encoding;
-use Encode::Encoder;
-use Encode::Symbol;
-use Encode::Byte;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
-
-my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
-my $encoding = $w32encoding ? Encode::resolve_alias($w32encoding) : '';
-my $ss = chr(223);
 
 sub new {
   my $self = bless {};
@@ -84,7 +73,7 @@ sub search {
   $page =~ s#<br>#\n#ig;
   $page =~ s#<p>#\n#ig;
   $page =~ s#</p>#\n#ig;
-  $page =~ s#<[^>]+>##ig;
+  $page =~ s#<[^>]+?>##ig;
   $page =~ s#\n\n#\n#ig;
 
   my %staffeln = $self->get_staffel_hash($page);
@@ -96,7 +85,6 @@ sub search {
   foreach my $fs_title (sort keys %staffeln) {
         my $regtest = $self->staffeltitle_to_regtest($fs_title, %subst);
 
-        $regtest = encode($encoding, $regtest) if (defined $encoding && $encoding ne '');		     		     
         if ($episodename_search eq $regtest) {
 	     Log::log("direct found $episodename_search => $regtest => S$staffeln{$fs_title}{S} E$staffeln{$fs_title}{E}", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	     # found number so return
@@ -174,6 +162,20 @@ sub get_staffel_hash {
    	 }
    	 next if (!$aktstaffel);
 
+     #20[20]Die älteste GeschichteAll That Glitters29.04.2011
+	 #2[2]Schüsse vom Samariter14.08.2012Samaritan01.10.2010
+
+  	 if (($line =~ /^(\d+)\[\d+\](.*?)\d{2}\.\d{2}\.\d{4}.*?\d{2}\.\d{2}\.\d{4}$/) ||
+  	    ($line =~ /^(\d+)\[\d+\](.*?)\d{2}\.\d{2}\.\d{4}$/)) {
+	 	 
+	   $aktseries_in_staffel = $1;
+	   my $episodename = $2;
+   	   $aktstaffel = 1 if ($aktstaffel == 0);
+	   
+   	   $r{$episodename}{E} = $aktseries_in_staffel;
+   	   $r{$episodename}{S} = $aktstaffel;
+   	   next;
+   	 }
 #6
 #[98]
 #Entwischt
@@ -186,9 +188,10 @@ sub get_staffel_hash {
 	   my $episodename = $lines[$i+2];
    	   $r{$episodename}{E} = $aktseries_in_staffel;
    	   $r{$episodename}{S} = $aktstaffel;
-	   $i += 4;
+	   $i += 3;
    	   next;
    	 }
+
    }
 
 return %r;
@@ -200,23 +203,8 @@ sub staffeltitle_to_regtest {
   		my %subst = @_;
   
         $regtest = EpisodeSubst($regtest, %subst);
-# TODO CLEAN??
-return lc($regtest);
 
-        $regtest =~ s#\s+$##;
-        $regtest =~ s#^\s+##;
-		# Bad IDEA - it removes valid names
-        # $regtest =~ s#\s+\(\d+\)$##;
-        $regtest =~ s#\.#\. #g;
-        $regtest =~ s#\.# #g;
-        $regtest =~ s#\-# #g;
-        $regtest =~ s#:# #g;
-        $regtest =~ s#&# #g;
-        $regtest =~ s#(\.|\!|\?)##g;
-        $regtest =~ s#$ss#ss#g;
-        $regtest =~ s#\s+##g;
-
-return lc($regtest);
+		return lc($regtest);
 }
 
 sub html_entitiy {
@@ -239,9 +227,6 @@ sub _myget {
 	my $resp = $ua->get($uri);
 	my $r = $resp->content();
 	
-	# fernsehserien is UTF-8
-    $r = encode($encoding, decode('utf-8', $r));
-
 return $r;
 }
 

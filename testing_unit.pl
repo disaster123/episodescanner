@@ -12,9 +12,11 @@ BEGIN {
 use lib 'lib';
 use lib 'libs';
 use lib '.';
+
 use Carp;
 $SIG{__WARN__} = \&Carp::cluck;
 $SIG{__DIE__} = \&Carp::confess;
+
 use warnings;
 use strict;
 use thumbs;
@@ -38,10 +40,12 @@ use DBD::ODBC;
 use DBD::mysql;
 use DBD::SQLite;
 use Cmd;
+use Win32::Console;
 
-# cp1252
-my $w32encoding = Win32::Codepage::get_encoding();  # e.g. "cp1252"
-my $encoding = $w32encoding ? resolve_alias($w32encoding) : '';
+BEGIN {
+  binmode(STDOUT, ":unix:utf8");
+  Win32::Console::OutputCP( 65001 );
+}
 
 our $progbasename = &basename($0, '.exe');
 our $DEBUG = 1; # Testing Unit is always DEBUG = 1
