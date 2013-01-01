@@ -55,7 +55,8 @@ BEGIN {
     $program_dir = $1;
   }
   chdir($program_dir);
-  binmode(STDOUT, ":unix:utf8");
+  binmode STDOUT, ':utf8';
+  binmode STDERR, ':utf8';
   Win32::Console::OutputCP( 65001 );
 }
 # hey skip on cava
@@ -368,12 +369,9 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
   my $abf_g = $dbh->prepare("SELECT * FROM recording;");
   $abf_g->execute() or die $DBI::errstr;
   while (my $aktrec = $abf_g->fetchrow_hashref()) {
-	#print Dumper($aktrec)."\n\n";
-	if (!-e $aktrec->{fileName}) {
-		print "$aktrec->{'fileName'} does not exist -> delete DB Entry\n";
-		my $abf = $dbh2->prepare("DELETE FROM recording WHERE idRecording = ?");
-		my $a = $abf->execute($aktrec->{'idRecording'}) or die $DBI::errstr;
-		$abf->finish();
+	if (!-e Win32::GetANSIPathName($aktrec->{fileName})) {
+		Log::log("$aktrec->{'fileName'} does not exist -> delete DB Entry");
+	    $dbh2->do("DELETE FROM recording WHERE idRecording = ?", undef, $aktrec->{'idRecording'}) or die $DBI::errstr;
 	}
   }
   $abf_g->finish();  
@@ -385,28 +383,28 @@ if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db && open(m
   close($EFH);
   Log::log("\nCleanup tvseriescleanup");
 
-   my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");
-   
-   my %tvseries_files;
-   my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;");
-   $sth->execute();
-   while (my $data = $sth->fetchrow_hashref()) {
-      $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
-
-      utf8::decode($data->{'EpisodeFilename'});
-	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
-	  $data->{'EpisodeFilename'} = encode($encoding, $data->{'EpisodeFilename'}) if (defined $encoding && $encoding);
-	  $tvseries_files{$data->{'EpisodeFilename'}} = 1;
-   }
-   $sth->finish();
-   $tvseries_dbh->disconnect();  
-  
+  my %tvseries_files;
+  my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");   
+  my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;") or die "Query failed!: $DBI::errstr";
+  $sth->execute() or die "Query failed!: $DBI::errstr";
+  while (my $data = $sth->fetchrow_hashref()) {
+    $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
+	  
+    $tvseries_files{$data->{'EpisodeFilename'}} = 1;
+    utf8::decode($data->{'EpisodeFilename'});
+    $tvseries_files{$data->{'EpisodeFilename'}} = 1;
+	$data->{'EpisodeFilename'} = encode($encoding, $data->{'EpisodeFilename'}) if (defined $encoding && $encoding);
+	$tvseries_files{$data->{'EpisodeFilename'}} = 1;
+  }
+  $sth->finish();
+  $tvseries_dbh->disconnect();  
+ 
   my $abf_g = $dbh->prepare("SELECT * FROM recording;");
   $abf_g->execute() or die $DBI::errstr;
   while (my $aktrec = $abf_g->fetchrow_hashref()) {
     $aktrec->{fileName} =~ s#^\Q$cleanup_recordings_tvseries_recordings_mainpath\E##i;
 	if (defined $tvseries_files{$aktrec->{fileName}}) {
-		print "$aktrec->{'fileName'} does also exist in tvseries -> delete DB Entry\n";
+		Log::log("$aktrec->{'fileName'} does also exist in tvseries -> delete DB Entry");
 		$dbh2->do("DELETE FROM recording WHERE idRecording = ?", undef, $aktrec->{'idRecording'});
 	}
   }
