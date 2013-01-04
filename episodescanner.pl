@@ -35,6 +35,7 @@ use Win32::Console;
 use Win32::Codepage;
 use Encode qw(encode decode resolve_alias);
 use Encode::Byte;
+use Try::Tiny;
 
 my $currentProcess;
 if (Win32::Process::Open($currentProcess, Win32::Process::GetCurrentProcessID(), 0)) {
@@ -379,36 +380,47 @@ if ($cleanup_recordingdb && -d $cleanup_recordingdir) {
 }
 
 ########################################### Clean tvseriescleanup
-if ($cleanup_recordings_tvseries && -e $cleanup_recordings_tvseries_db && open(my $EFH, "<", $cleanup_recordings_tvseries_db)) {
-  close($EFH);
+if ($cleanup_recordings_tvseries) {
   Log::log("\nCleanup tvseriescleanup");
 
-  my %tvseries_files;
-  my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","");   
-  my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;") or die "Query failed!: $DBI::errstr";
-  $sth->execute() or die "Query failed!: $DBI::errstr";
-  while (my $data = $sth->fetchrow_hashref()) {
-    $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
+  try {
+    if (!-e $cleanup_recordings_tvseries_db) {
+	    die "DB File $cleanup_recordings_tvseries_db does not exist!\n";
+    }
+	if (!open(my $EFH, "<", $cleanup_recordings_tvseries_db)) {
+	   die "Cannot open $cleanup_recordings_tvseries_db $!\n";
+	}
+
+    my %tvseries_files;
+    my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","") or die $DBI::errstr; 
+    my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;") or die "Query failed!: $DBI::errstr";
+    $sth->execute() or die "Query failed!: $DBI::errstr";
+    while (my $data = $sth->fetchrow_hashref()) {
+      $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
 	  
-    $tvseries_files{$data->{'EpisodeFilename'}} = 1;
-    utf8::decode($data->{'EpisodeFilename'});
-    $tvseries_files{$data->{'EpisodeFilename'}} = 1;
-	$data->{'EpisodeFilename'} = encode($encoding, $data->{'EpisodeFilename'}) if (defined $encoding && $encoding);
-	$tvseries_files{$data->{'EpisodeFilename'}} = 1;
-  }
-  $sth->finish();
-  $tvseries_dbh->disconnect();  
+      utf8::encode($data->{'EpisodeFilename'});
+      $tvseries_files{$data->{'EpisodeFilename'}} = 1;
+
+	  Log::log("SQLite: ".$data->{'EpisodeFilename'}, 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+    }
+    $sth->finish();
+    $tvseries_dbh->disconnect();  
  
-  my $abf_g = $dbh->prepare("SELECT * FROM recording;");
-  $abf_g->execute() or die $DBI::errstr;
-  while (my $aktrec = $abf_g->fetchrow_hashref()) {
-    $aktrec->{fileName} =~ s#^\Q$cleanup_recordings_tvseries_recordings_mainpath\E##i;
-	if (defined $tvseries_files{$aktrec->{fileName}}) {
+    my $abf_g = $dbh->prepare("SELECT * FROM recording;") or die $DBI::errstr;
+    $abf_g->execute() or die $DBI::errstr;
+    while (my $aktrec = $abf_g->fetchrow_hashref()) {
+      $aktrec->{fileName} =~ s#^\Q$cleanup_recordings_tvseries_recordings_mainpath\E##i;
+	  if (defined $tvseries_files{$aktrec->{fileName}}) {
 		Log::log("$aktrec->{'fileName'} does also exist in tvseries -> delete DB Entry");
 		$dbh2->do("DELETE FROM recording WHERE idRecording = ?", undef, $aktrec->{'idRecording'});
-	}
-  }
-  $abf_g->finish();  
+	  }
+
+ 	  Log::log("recording DB: ".$aktrec->{fileName}, 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+    }
+    $abf_g->finish();  
+  } catch {
+    warn $_;
+  };
 }
 
 ########################################### Clean XML files...
