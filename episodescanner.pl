@@ -393,7 +393,7 @@ if ($cleanup_recordings_tvseries) {
 
     my %tvseries_files;
     my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","") or die $DBI::errstr; 
-    $tvseries_dbh->{unicode} = 1;
+    $tvseries_dbh->{sqlite_unicode} = 1;
     my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;") or die "Query failed!: $DBI::errstr";
     $sth->execute() or die "Query failed!: $DBI::errstr";
     while (my $data = $sth->fetchrow_hashref()) {
