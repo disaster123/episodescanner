@@ -393,12 +393,12 @@ if ($cleanup_recordings_tvseries) {
 
     my %tvseries_files;
     my $tvseries_dbh = DBI->connect("dbi:SQLite:dbname=".$cleanup_recordings_tvseries_db,"","") or die $DBI::errstr; 
+    $tvseries_dbh->{unicode} = 1;
     my $sth = $tvseries_dbh->prepare("select * from local_episodes WHERE SeriesID > 0;") or die "Query failed!: $DBI::errstr";
     $sth->execute() or die "Query failed!: $DBI::errstr";
     while (my $data = $sth->fetchrow_hashref()) {
       $data->{'EpisodeFilename'} =~ s#^\Q$cleanup_recordings_tvseries_db_mainpath\E##i;
 	  
-      utf8::encode($data->{'EpisodeFilename'});
       $tvseries_files{$data->{'EpisodeFilename'}} = 1;
 
 	  Log::log("SQLite: ".$data->{'EpisodeFilename'}, 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
@@ -411,7 +411,7 @@ if ($cleanup_recordings_tvseries) {
     while (my $aktrec = $abf_g->fetchrow_hashref()) {
       $aktrec->{fileName} =~ s#^\Q$cleanup_recordings_tvseries_recordings_mainpath\E##i;
 	  if (defined $tvseries_files{$aktrec->{fileName}}) {
-		Log::log("$aktrec->{'fileName'} does also exist in tvseries -> delete DB Entry");
+		Log::log("$aktrec->{'fileName'} also exist in tvseries -> delete DB Entry");
 		$dbh2->do("DELETE FROM recording WHERE idRecording = ?", undef, $aktrec->{'idRecording'});
 	  }
 
