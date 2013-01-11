@@ -69,8 +69,11 @@ sub search {
 
   # remove HTML Code and so on from $page
   $page =~ s#<!--((\n|\r|.)*?)-->#\n#ig;
+  $page =~ s#<head>((\n|\r|.)*?)</head>#\n#ig;
+  $page =~ s#<script>((\n|\r|.)*?)</script>#\n#ig;
   $page =~ s#\r#\n#ig;
-  $page =~ s#<br>#\n#ig;
+  $page =~ s#<br(>|\s*/>)#\n#ig;
+  $page =~ s#<li>#\n#ig;
   $page =~ s#<p>#\n#ig;
   $page =~ s#</p>#\n#ig;
   $page =~ s#<[^>]+?>##ig;
@@ -119,6 +122,8 @@ sub search {
 		   my $FH;
 		   open($FH, ">fernsehserien_".++$self->{'debug_counter'}.".htm");
 		   print $FH $page;
+		   print $FH "-" x 120 , "\n";
+		   print $FH Dumper(\%staffeln);
 		   close($FH);
            Log::log("\tWriting debug page to: ".$self->{'debug_counter'}, 0)
 	   }

@@ -43,7 +43,15 @@ use Cmd;
 use Win32::Console;
 
 BEGIN {
-  binmode(STDOUT, ":unix:utf8");
+  $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
+  my ($program_dir) = $0 =~ m%^(.*)[/\\]%;
+  $program_dir ||= ".";
+  if ($program_dir =~ m#^(.*)bin[\\/]{0,1}$#) {
+    $program_dir = $1;
+  }
+  chdir($program_dir);
+  binmode STDOUT, ':utf8';
+  binmode STDERR, ':utf8';
   Win32::Console::OutputCP( 65001 );
 }
 
