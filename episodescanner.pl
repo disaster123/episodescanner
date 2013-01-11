@@ -139,12 +139,17 @@ Log::log("got Win32 Codepage: ".$w32encoding, 0) if (defined $ENV{DEBUG} && $ENV
 our $encoding = ($w32encoding ? resolve_alias($w32encoding) : '')  || '';
 Log::log("got resolved alias: ".$encoding, 0) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 
+if ($use4tr) {
+  Log::log("using 4TR Database", 0);
+  $dbname = $dbname_4tr;
+  Log::log("Using 4TR disabling some incompatible settings");   
+  Log::log("cleanup_recordingdb = 0");   
+  $cleanup_recordingdb = 0;
+  Log::log("cleanup_recordingfiles = 0");   
+  $cleanup_recordingfiles = 0;
+}
 if ($usemysql) {
   Log::log("using MySQL", 0);
-  if ($use4tr) {
-    Log::log("using 4TR Database", 0);
-	$dbname = $dbname_4tr;
-  }
   $dbh = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
                                                  $dbuser, $dbpw, {mysql_enable_utf8 => 1} ) or die "Can't connect to MYSQL: $DBI::errstr\n\n";
   $dbh2 = DBI->connect( "dbi:mysql:database=$dbname:hostname=$dbhost",
@@ -156,27 +161,11 @@ if ($usemysql) {
   $optimizemysqltables = 0;
   Log::log("using MSSQL", 0);
   my $dsn = "dbi:ODBC:driver={SQL Server};Server=$dbhost;uid=$dbuser;pwd=$dbpw;Database=";
-  my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1};
-  if ($use4tr) {
-    Log::log("using 4TR Database", 0);
-    $dbh = DBI->connect($dsn.$dbname_4tr, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
-    $dbh2 = DBI->connect($dsn.$dbname_4tr, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
-    $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;
-    $dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
-  } else {
-    $dbh = DBI->connect($dsn.$dbname, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
-    $dbh2 = DBI->connect($dsn.$dbname, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
-    $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;
-	$dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
-  }
-}
-
-if ($use4tr) {
-    Log::log("Using 4TR disabling some incompatible settings");   
-    Log::log("cleanup_recordingdb = 0");   
-	$cleanup_recordingdb = 0;
-    Log::log("cleanup_recordingfiles = 0");   
-	$cleanup_recordingfiles = 0;
+  my $db_options = {PrintError => 1,RaiseError => 1,AutoCommit => 1,odbc_utf8_on => 1};
+  $dbh = DBI->connect($dsn.$dbname, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
+  $dbh2 = DBI->connect($dsn.$dbname, $dbuser, $dbpw, $db_options) or die "Can't connect to MSSQL: $DBI::errstr\n\n";
+  $dbh->{LongReadLen} = 20480;$dbh->{LongTruncOk} = 1;
+  $dbh2->{LongReadLen} = 20480;$dbh2->{LongTruncOk} = 1;
 }
 
 Log::log("Recordingdir: $cleanup_recordingdir") if ($cleanup_recordingfiles);
