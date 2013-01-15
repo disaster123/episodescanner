@@ -240,10 +240,11 @@ sub _myget {
 	my %par = @_;
 
 	my $ua = LWP::UserAgent->new();
+	$ua->agent("Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
 	my $uri = URI::URL->new($url);
 	$uri->query_form(%par);
 	
-	Log::log("\tuse $url", 1);
+	Log::log("\tuse $url?" . join("&", map { "$_=$par{$_}" } keys %par), 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	my $resp = $ua->get($uri);
 	my $r = $resp->content();
 	

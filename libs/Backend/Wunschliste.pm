@@ -12,6 +12,7 @@ use Data::Dumper;
 use Text::LevenshteinXS qw(distance);
 use Log;
 use Backend::EpisodeSubst;
+use Encode;
 
 BEGIN {
   $ENV{XML_SIMPLE_PREFERRED_PARSER} = 'XML::Parser'; 
@@ -83,13 +84,21 @@ sub search {
 
   $page = _myget("http://www.wunschliste.de/xml/rss.pl", (s => $id, mp => '1'));
   my $xs = XMLin($page, (KeepRoot => 1));
-
+  
   if (!ref($xs) || !ref($xs->{epgliste}) || !ref($xs->{epgliste}->{episode})) {
      Log::log("\tRSS Feed does not contain valid EPG Info - more details logged");
      Log::log(Dumper($xs), 1);
      return (0,0);
   }
   
+  # @{[$string =~ /$match/g]}; 
+  my $nr = @{[$page =~ /<episode>/mg]};
+  $page =~ m/<datum_start>(.*?)<\/datum_start>/is;
+  my $startd = $1;
+  $page =~ m/.*<datum_start>(.*?)<\/datum_start>/is;
+  my $endd = $1;
+  Log::log("\tgot $nr episodes of $seriesname shown from $startd to $endd");
+
   my %staffeln;
   eval {
      %staffeln = $self->get_staffel_hash($xs);
@@ -193,13 +202,15 @@ sub _myget {
 	my $uri = URI::URL->new($url);
 	$uri->query_form(%par);
 	
+	Log::log("\tuse $url?" . join("&", map { "$_=$par{$_}" } keys %par), 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
 	my $resp = $ua->get($uri);
 	my $re_url = "";
 	eval {
        $re_url = $resp->{_request}->{_uri}->as_string;
 	};
 
-	my $r = $resp->content();
+	# wunschliste.de is still iso also the rss feed
+	my $r = encode('UTF-8', decode('ISO-8859-1', $resp->content() ) );
 
 return wantarray ? ($r, $re_url) : $r;
 }
