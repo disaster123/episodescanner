@@ -41,6 +41,10 @@ use DBD::mysql;
 use DBD::SQLite;
 use Cmd;
 use Win32::Console;
+use Win32::Codepage;
+use Encode qw(encode decode resolve_alias);
+use Encode::Byte;
+use Try::Tiny;
 
 BEGIN {
   $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i);
@@ -147,6 +151,9 @@ Log::log("use global TVDB API Key");
 $b_wl = new Backend::Wunschliste;
 $b_fs = new Backend::Fernsehserien;
 $b_tvdb = new Backend::TVDB($progbasename, $tvdb_apikey, $thetvdb_language);
+
+# THIS IS IMPORTANT as ARGV is not UTF8 here - but the console OUTPUT may not match as the codepage setting does not work - no idea why
+utf8::encode($_) for @ARGV;
 
 my $seriesname = $ARGV[1];
 my $episodename = $ARGV[2];
