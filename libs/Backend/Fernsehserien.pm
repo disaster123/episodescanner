@@ -30,7 +30,8 @@ sub search {
 
   Log::log("\tsearch on http://www.fernsehserien.de/...");
 
-  my $page = _myget("http://www.fernsehserien.de/index.php", ( suche => $seriesname ));
+  my $searchname = $self->searchname($seriesname);
+  my $page = _myget("http://www.fernsehserien.de/index.php", ( suche => $searchname ));
   
   FS_RECHECK:
   # test if it is directly a result page
@@ -39,10 +40,12 @@ sub search {
   } else {
     # Try to get all Series
 	# <span class="suchergebnis-titel">New Girl</span>
-	my $seriesname_html = $self->html_entitiy($seriesname);
-    if ($page =~ m#href="([^"]+)".*?<span class="suchergebnis-titel">\Q$seriesname_html\E</span>#i) {
-      my $uri = $1;
-      Log::log("Found new / remapped page $uri", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
+	my $seriesname_html = $self->fs_html_entitiy($seriesname);
+	# we need to make this one greedy by starting with ^.* otherwise the match doesn't work as perl starts to put as much
+	# in .*? which results in incorrect links => right to left match
+    if ($page =~ m#^.*( href="([^"]+)".*?class="suchergebnis-titel">\Q$seriesname_html\E</span>)#is) {
+      my $uri = $2;
+      Log::log("Found new / remapped page $uri by $1", 1) if (defined $ENV{DEBUG} && $ENV{DEBUG} == 1);
       my %par = ();
       if ($uri =~ m#\?(.*)$#i) {
 	    foreach my $l (split(/&/, $1)) {
@@ -212,10 +215,21 @@ sub staffeltitle_to_regtest {
 		return lc($regtest);
 }
 
-sub html_entitiy {
+sub searchname {
    shift; # this is $self
    my $r = shift;
    
+   # they use buggy encoding like in html_entitiy we need to strip every &
+   $r =~ s/&//g;
+   
+   return $r;
+}
+
+sub fs_html_entitiy {
+   shift; # this is $self
+   my $r = shift;
+   
+   # they use buggy encoding (just encode & to &amp;) that's why we need our own entity method
    $r =~ s/&/&amp;/g;
    
    return $r;
@@ -229,6 +243,7 @@ sub _myget {
 	my $uri = URI::URL->new($url);
 	$uri->query_form(%par);
 	
+	Log::log("\tuse $url", 1);
 	my $resp = $ua->get($uri);
 	my $r = $resp->content();
 	
