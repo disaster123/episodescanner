@@ -141,34 +141,27 @@ sub get_staffel_hash {
    my $p = shift;
    my %r;
 
-   my $aktstaffel = 0;
+   my $aktseason = 0;
    my $start = 0;
-   my $aktseries_in_staffel = 0;
+   my $aktepisode = 0;
    my @lines = split(/\n/, $p);
    # foreach my $i (0..$#lines) {
    for (my $i = 0; $i <= $#lines; $i++) {
      my $line = $lines[$i];
 	 chomp($line);
    
-   	 if ($line =~ /^\s*bisher\s+\d+\s+(Episoden|Folgen)/i) {
-		# print "Start found == 1\n";
-   		$start = 1;
-   		next;
-   	 }
-
-   	 if ($start == 0 && ($line =~ /^\s*(\d+)\. Staffel/i || $line =~ /^\s*Staffel (\d+)/i)) {
-		# print "Start found == 1\n";
+   	 if ($line =~ /^\s*bisher\s+\d+\s+(Episoden|Folgen)/i || $line =~ /^\s*(\d+)\. Staffel/i || $line =~ /^\s*Staffel (\d+)/i) {
    		$start = 1;
    	 }
 
    	 next if ($start == 0);
    	
-   	 if ($line =~ /^\s*(\d+)\. Staffel/i|| $line =~ /^\s*Staffel (\d+)$/i) {
-		$aktstaffel = $1;
-		$aktseries_in_staffel = 0;
+   	 if ($line =~ /^\s*(\d+)\. Staffel/i || $line =~ /^\s*Staffel (\d+)$/i) {
+		$aktseason = $1;
+		$aktepisode = 0;
    		next;
    	 }
-   	 next if (!$aktstaffel);
+   	 next if (!$aktseason);
 
      #20[20]Die älteste GeschichteAll That Glitters29.04.2011
 	 #2[2]Schüsse vom Samariter14.08.2012Samaritan01.10.2010
@@ -176,12 +169,12 @@ sub get_staffel_hash {
   	 if (($line =~ /^(\d+)\[\d+\](.*?)\d{2}\.\d{2}\.\d{4}.*?\d{2}\.\d{2}\.\d{4}$/) ||
   	    ($line =~ /^(\d+)\[\d+\](.*?)\d{2}\.\d{2}\.\d{4}$/)) {
 	 	 
-	   $aktseries_in_staffel = $1;
+	   $aktepisode = $1;
 	   my $episodename = $2;
-   	   $aktstaffel = 1 if ($aktstaffel == 0);
+   	   $aktseason = 1 if ($aktseason == 0);
 	   
-   	   $r{$episodename}{E} = $aktseries_in_staffel;
-   	   $r{$episodename}{S} = $aktstaffel;
+   	   $r{$episodename}{E} = $aktepisode;
+   	   $r{$episodename}{S} = $aktseason;
    	   next;
    	 }
 #6
@@ -190,12 +183,12 @@ sub get_staffel_hash {
 #01.02.2006
 
    	 if ($line =~ /^(\d+)$/ && $lines[$i+1] =~ /^\[\d+\]$/ && $lines[$i+3] =~ /^\d{2}\.\d{2}\.\d{4}$/) {
-	   $aktseries_in_staffel = $line;
-   	   $aktstaffel = 1 if ($aktstaffel == 0);
+	   $aktepisode = $line;
+   	   $aktseason = 1 if ($aktseason == 0);
 	   
 	   my $episodename = $lines[$i+2];
-   	   $r{$episodename}{E} = $aktseries_in_staffel;
-   	   $r{$episodename}{S} = $aktstaffel;
+   	   $r{$episodename}{E} = $aktepisode;
+   	   $r{$episodename}{S} = $aktseason;
 	   $i += 3;
    	   next;
    	 }
