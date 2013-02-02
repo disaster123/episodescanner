@@ -79,6 +79,8 @@ sub search {
   $page =~ s#<li>#\n#ig;
   $page =~ s#<p>#\n#ig;
   $page =~ s#</p>#\n#ig;
+  $page =~ s#</td>#\n#ig;
+  $page =~ s#</tr>#\n#ig;
   $page =~ s#<[^>]+?>##ig;
   $page =~ s#\n\n#\n#ig;
 
@@ -160,29 +162,14 @@ sub get_staffel_hash {
 		$aktseason = $1;
 		$aktepisode = 0;
    		next;
-   	 }
-   	 next if (!$aktseason);
+   	}
+   	next if (!$aktseason);
 
-     #20[20]Die älteste GeschichteAll That Glitters29.04.2011
-	 #2[2]Schüsse vom Samariter14.08.2012Samaritan01.10.2010
-
-  	 if (($line =~ /^(\d+)\[\d+\](.*?)\d{2}\.\d{2}\.\d{4}.*?\d{2}\.\d{2}\.\d{4}$/) ||
-  	    ($line =~ /^(\d+)\[\d+\](.*?)\d{2}\.\d{2}\.\d{4}$/)) {
-	 	 
-	   $aktepisode = $1;
-	   my $episodename = $2;
-   	   $aktseason = 1 if ($aktseason == 0);
-	   
-   	   $r{$episodename}{E} = $aktepisode;
-   	   $r{$episodename}{S} = $aktseason;
-   	   next;
-   	 }
-#6
-#[98]
-#Entwischt
-#01.02.2006
-
-   	 if ($line =~ /^(\d+)$/ && $lines[$i+1] =~ /^\[\d+\]$/ && $lines[$i+3] =~ /^\d{2}\.\d{2}\.\d{4}$/) {
+    #6
+    #[98]
+    #Entwischt
+    #01.02.2006
+   	if ($line =~ /^(\d+)$/ && $lines[$i+1] =~ /^\[\d+\]$/ && $lines[$i+3] =~ /^\d{2}\.\d{2}\.\d{4}$/) {
 	   $aktepisode = $line;
    	   $aktseason = 1 if ($aktseason == 0);
 	   
@@ -191,9 +178,24 @@ sub get_staffel_hash {
    	   $r{$episodename}{S} = $aktseason;
 	   $i += 3;
    	   next;
-   	 }
-
-   }
+   	}
+	#12.
+	#06
+	#Fürstin der Schmerzen
+	#05.02.2013
+	#Freaks &amp; Geeks
+	#02.11.2011
+   	if ($line =~ /^$aktseason\.$/ && $lines[$i+1] =~ /^(\d+)$/ && $lines[$i+3] =~ /^\d{2}\.\d{2}\.\d{4}$/) {
+	   $aktepisode = int($lines[$i+1]);
+   	   $aktseason = 1 if ($aktseason == 0);
+	   
+	   my $episodename = $lines[$i+2];
+   	   $r{$episodename}{E} = $aktepisode;
+   	   $r{$episodename}{S} = $aktseason;
+	   $i += 4;
+   	   next;
+   	}
+  }
 
 return %r;
 }
