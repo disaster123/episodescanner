@@ -77,6 +77,8 @@ sub search {
   $page =~ s#\r#\n#ig;
   $page =~ s#<br(>|\s*/>)#\n#ig;
   $page =~ s#<li>#\n#ig;
+  $page =~ s#<span[^>]+>#\n#ig;
+  $page =~ s#<div[^>]+>#\n#ig;
   $page =~ s#<p>#\n#ig;
   $page =~ s#</p>#\n#ig;
   $page =~ s#</td>#\n#ig;
@@ -179,6 +181,27 @@ sub get_staffel_hash {
 	   $i += 3;
    	   next;
    	}
+
+    #5.
+    #12
+    #
+    #Auf der Lauer
+    #Stakeout
+    #31.08.2008
+    #08.04.2008
+    #Stakeout
+    #08.04.2008
+   	if ($line =~ /^$aktseason\.$/ && $lines[$i+1] =~ /^(\d+)$/ && $lines[$i+5] =~ /^\d{2}\.\d{2}\.\d{4}$/ && $lines[$i+6] =~ /^\d{2}\.\d{2}\.\d{4}$/) {
+	   $aktepisode = int($lines[$i+1]);
+   	   $aktseason = 1 if ($aktseason == 0);
+	   
+	   my $episodename = $lines[$i+3];
+   	   $r{$episodename}{E} = $aktepisode;
+   	   $r{$episodename}{S} = $aktseason;
+	   $i += 8;
+   	   next;
+   	}
+
 	#12.
 	#06
 	#Fürstin der Schmerzen
